@@ -1,0 +1,20 @@
+\documentclass[UTF8,12pt,a4paper]{ctexart}
+\usepackage[margin=2.2cm]{geometry}\usepackage{amsmath,booktabs,float}
+\title{问题三：停车、接驳与人员协同配置}\author{}\date{}
+\begin{document}\maketitle
+\section{决策对象与口径}
+以问题二的三区日级游客规模分位数为输入，在$q_{10}$、$q_{50}$和$q_{90}$情景下规划停车泊位、接驳车辆和三班制人员。模型输出为给定参数下的推荐规划量，而非实际运营台账。三类资源不直接相加。
+\begin{equation}P_d=\left\lceil\frac{V_d\alpha}{o}\pi\frac{h}{H}\right\rceil.\end{equation}
+\begin{equation}N_d=\max\left\{\left\lceil\frac{q_d\tau}{60s\eta}\right\rceil,\left\lceil\frac{\tau}{g}\right\rceil\right\}.\end{equation}
+人员排班满足$x_t\geq\lceil\lambda_t/(\mu\rho_{\max})\rceil$，其中$\rho_{\max}=0.8$。
+\section{优化模型与约束}
+\begin{equation}\min\;C(\mathbf x)+\lambda L(\mathbf x).\end{equation}
+约束包括泊位容量、临时泊位可用性、最大发车间隔和三班制覆盖。山海关古城2\,225个具名停车泊位为已核验节点约束；北戴河13\,000泊位仅作为2017年历史参考情景；其他容量明确标为情景参数。
+\section{结果与建议}
+基准情景下，北戴河、海港--阿那亚和山海关暑期代表日游客规模分别为64\,852、36\,905和59\,936人次；高压情景下分别为111\,540、50\,488和116\,316人次。高压情景对应年度最大泊位需求为20\,208、7\,700和21\,894个，最大接驳车辆为73、24和63辆，最大单班人员为426、166和445人。
+\begin{table}[H]\centering\caption{成本--体验权衡}\begin{tabular}{rrr}\toprule
+$\lambda$&平均相对运行成本&平均标准化服务损失\\\midrule
+1&0.330&2.028\\2&2.201&0.157\\4&2.226&0.148\\6&2.285&0.137\\8&2.308&0.133\\\bottomrule
+\end{tabular}\end{table}
+从$\lambda=1$提高到2可显著降低服务损失，之后边际改善减小，故取$\lambda=2$为基准方案。北戴河暑期以高分位预测与周末/假日叠加触发临时泊位、加密接驳和中班增配。
+\end{document}

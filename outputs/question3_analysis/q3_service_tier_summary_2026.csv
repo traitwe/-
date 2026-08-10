@@ -1,0 +1,8 @@
+﻿region_code,base_service_tier,days
+BDH,emergency,18
+BDH,normal,182
+BDH,surge,165
+HGA,normal,182
+HGA,surge,183
+SHG,normal,182
+SHG,surge,183

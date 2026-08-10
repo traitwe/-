@@ -6,10 +6,10 @@
     273274953.2222651
   ],
   "annual_selected_model": "recent_median_growth",
-  "daily_selected_model": "seasonal_calendar_ridge",
+  "daily_selected_model": "dynamic_ridge",
   "daily_validation_scope": "raw_attraction_observation_dates_only",
   "daily_validation_covariate_mode": "conditional_on_realized_weather_and_lagged_search",
-  "weather_response_model": "dynamic_ridge_sensitivity_only",
+  "weather_response_model": "selected_daily_model",
   "weather_shock_effective": true,
   "regional_daily_unit": "anchor_constrained_visitor_scale_estimate_not_observed_count"
 }

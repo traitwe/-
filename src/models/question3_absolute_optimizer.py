@@ -16,7 +16,7 @@ def optimize_absolute_resources(
     staff_required: int,
     risk_penalty: float = 4.0,
 ) -> tuple[dict[str, float | int], pd.DataFrame]:
-    """Enumerate three coverage levels for temporary parking, shuttles and staff.
+    """Enumerate six coverage levels for temporary parking, shuttles and staff.
 
     Costs are relative scenario units: temporary-space activation, vehicle
     deployment, and staff-shift deployment each equal one at full coverage.
@@ -26,7 +26,7 @@ def optimize_absolute_resources(
     values = (parking_required, permanent_spaces, temporary_capacity, shuttle_required, staff_required)
     if any(int(value) != value or value < 0 for value in values) or risk_penalty < 0:
         raise ValueError("resource requirements and capacities must be non-negative integers; risk_penalty non-negative")
-    levels = (0.0, 0.5, 1.0)
+    levels = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)
     records = []
     for parking_level, shuttle_level, staff_level in product(levels, repeat=3):
         temporary = math.ceil(temporary_capacity * parking_level)

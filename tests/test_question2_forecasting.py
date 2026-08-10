@@ -15,7 +15,7 @@ from src.models.question2_forecasting import (
     predict_daily_ridge_forecaster,
     scenario_adjust_weather,
 )
-from src.analysis.q2_forecast_outputs import build_climatological_covariates, build_external_anchor_validation, build_q2_diagnostic_figures, build_question2_outputs
+from src.analysis.q2_forecast_outputs import _daily_comparison, build_climatological_covariates, build_external_anchor_validation, build_q2_diagnostic_figures, build_question2_outputs
 
 
 def test_annual_rolling_origin_splits_keep_all_training_years_before_the_target():
@@ -77,6 +77,14 @@ def test_daily_calendar_features_are_deterministic_from_dates():
     assert result["is_summer"].tolist() == [1.0, 1.0]
     assert result["is_weekend"].tolist() == [1.0, 0.0]
     assert {"annual_sin", "annual_cos"}.issubset(result.columns)
+    assert result["weekday_5"].tolist() == [1.0, 0.0]
+
+
+def test_daily_forecaster_uses_a_positive_training_floor_for_nonnegative_series():
+    source = pd.DataFrame({"date": pd.date_range("2025-01-01", periods=14), "region_code": ["SHG"] * 14, "target": [2.0] * 14})
+    model = fit_daily_ridge_forecaster(source, target_column="target", dynamic=False)
+    future = pd.DataFrame({"date": ["2026-01-05"], "region_code": ["SHG"]})
+    assert predict_daily_ridge_forecaster(model, future)["prediction_q50"].iloc[0] > 0
 
 
 def test_daily_ridge_forecast_orders_its_quantiles():
@@ -113,6 +121,18 @@ def test_weather_scenario_only_changes_weather_input_columns():
     assert result.loc[0, "rain_mm"] == 8.0
     assert result.loc[0, "temperature_c"] == 29.5
     assert result.loc[0, "search_lag_1"] == 10.0
+
+
+def test_daily_comparison_uses_latest_year_with_sufficient_observations_and_reports_interval_metrics():
+    dates = pd.date_range("2023-01-01", "2025-12-31", freq="D")
+    regional = pd.DataFrame({"date": dates, "region_code": "SHG", "pressure_index": np.linspace(1.0, 2.0, len(dates)), "baseline_scale": 100.0})
+    observed_dates = list(pd.date_range("2024-01-01", periods=60, freq="D")) + list(pd.date_range("2025-01-01", periods=14, freq="D"))
+    observed = pd.DataFrame({"date": observed_dates, "region_code": "SHG", "visitor_index": [0.5] * len(observed_dates)})
+    result, unavailable = _daily_comparison(regional, observed)
+    assert not unavailable
+    assert result["holdout_year"].eq(2024).all()
+    assert "historical_weekday_median" in set(result["candidate"])
+    assert {"picp_80", "mean_interval_width"}.issubset(result.columns)
 
 
 def test_climatological_covariates_use_only_history_before_forecast_year():
@@ -169,7 +189,7 @@ def test_q2_output_builder_writes_constrained_city_and_three_region_forecasts(tm
     assert (tmp_path / "q2_annual_model_comparison.csv").exists()
     assert report["annual_selected_model"] in {"weighted_log_trend", "last_year_naive", "recent_median_growth"}
     assert report["daily_validation_covariate_mode"] == "conditional_on_realized_weather_and_lagged_search"
-    assert report["weather_response_model"] == "dynamic_ridge_sensitivity_only"
+    assert report["weather_response_model"] in {"dynamic_ridge_sensitivity_only", "selected_daily_model"}
 
 
 def test_q2_diagnostic_figures_are_created_from_forecast_tables(tmp_path):

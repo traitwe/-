@@ -33,6 +33,7 @@ class DailyRidgeForecaster:
     residual_std: float
     region_levels: tuple[str, ...]
     dynamic: bool
+    prediction_floor: float
 
 
 def annual_rolling_origin_splits(years: Iterable[int], min_train_years: int = 8) -> list[tuple[int, int, int]]:
@@ -191,6 +192,8 @@ def build_daily_calendar_features(frame: pd.DataFrame) -> pd.DataFrame:
     day_of_year = date.dt.dayofyear.to_numpy(dtype=float)
     result["is_summer"] = date.dt.month.isin([7, 8]).astype(float)
     result["is_weekend"] = (date.dt.dayofweek >= 5).astype(float)
+    for weekday in range(1, 7):
+        result[f"weekday_{weekday}"] = (date.dt.dayofweek == weekday).astype(float)
     result["annual_sin"] = np.sin(2.0 * np.pi * day_of_year / 365.25)
     result["annual_cos"] = np.cos(2.0 * np.pi * day_of_year / 365.25)
     return result
@@ -200,7 +203,7 @@ def _daily_design(frame: pd.DataFrame, region_levels: tuple[str, ...], dynamic: 
     calendar = build_daily_calendar_features(frame)
     pieces = [np.ones((len(calendar), 1), dtype=float)]
     names = ["intercept"]
-    for name in ["is_summer", "is_weekend", "annual_sin", "annual_cos"]:
+    for name in ["is_summer", "annual_sin", "annual_cos", *[f"weekday_{weekday}" for weekday in range(1, 7)]]:
         pieces.append(calendar[[name]].to_numpy(dtype=float))
         names.append(name)
     if dynamic:
@@ -248,7 +251,9 @@ def fit_daily_ridge_forecaster(
     penalty[0, 0] = 0.0
     coefficients = np.linalg.pinv(standardized.T @ standardized + penalty) @ standardized.T @ y
     residual_std = float(np.std(y - standardized @ coefficients, ddof=0))
-    return DailyRidgeForecaster(names, tuple(means), tuple(scales), tuple(coefficients), residual_std, regions, dynamic)
+    positive_target = target.loc[valid & target.gt(0)].to_numpy(dtype=float)
+    floor = float(np.quantile(positive_target, 0.05)) if len(positive_target) else 0.0
+    return DailyRidgeForecaster(names, tuple(means), tuple(scales), tuple(coefficients), residual_std, regions, dynamic, floor)
 
 
 def predict_daily_ridge_forecaster(model: DailyRidgeForecaster, frame: pd.DataFrame, interval_z: float = 1.645) -> pd.DataFrame:
@@ -264,9 +269,9 @@ def predict_daily_ridge_forecaster(model: DailyRidgeForecaster, frame: pd.DataFr
     log_point = standardized @ np.asarray(model.coefficients)
     half_width = interval_z * model.residual_std
     result = frame.loc[:, [name for name in ["date", "region_code"] if name in frame.columns]].copy()
-    result["prediction_q10"] = np.maximum(np.expm1(log_point - half_width), 0.0)
-    result["prediction_q50"] = np.maximum(np.expm1(log_point), 0.0)
-    result["prediction_q90"] = np.maximum(np.expm1(log_point + half_width), 0.0)
+    result["prediction_q10"] = np.maximum(np.expm1(log_point - half_width), model.prediction_floor)
+    result["prediction_q50"] = np.maximum(np.expm1(log_point), model.prediction_floor)
+    result["prediction_q90"] = np.maximum(np.expm1(log_point + half_width), model.prediction_floor)
     result["estimate_label"] = "anchor_constrained_daily_visitor_forecast"
     result["forecast_method"] = "dynamic_ridge" if model.dynamic else "seasonal_calendar_ridge"
     return result

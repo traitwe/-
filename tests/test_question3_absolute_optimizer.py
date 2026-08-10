@@ -23,7 +23,7 @@ def test_higher_experience_penalty_selects_more_service_coverage():
     assert high["selected_shuttle_vehicles"] >= low["selected_shuttle_vehicles"]
     assert high["selected_staff_shifts"] >= low["selected_staff_shifts"]
     assert high["standardized_experience_loss"] <= low["standardized_experience_loss"]
-    assert len(diagnostics) == 27
+    assert len(diagnostics) == 216
 
 
 def test_optimizer_keeps_unavoidable_parking_shortage_in_experience_loss():

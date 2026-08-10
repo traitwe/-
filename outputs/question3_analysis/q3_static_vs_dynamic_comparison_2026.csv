@@ -1,0 +1,4 @@
+﻿region_code,staff_tier,entry_tier,parking_guidance_tier,shuttle_tier,static_daily_relative_cost,dynamic_daily_relative_cost,dynamic_mean_service_risk,annual_relative_cost_static,annual_relative_cost_dynamic,relative_cost_reduction,comparison_note
+BDH,2.0,2.0,2.0,0.0,4.8,1.5523287671232877,0.581972602739726,1752.0,566.6,0.6765981735159817,relative_cost_scenario_not_currency__same_service_risk_definition
+HGA,1.0,2.0,1.0,1.0,4.4,1.6065753424657534,0.32953424657534247,1606.0000000000002,586.4,0.6348692403486924,relative_cost_scenario_not_currency__same_service_risk_definition
+SHG,1.0,2.0,2.0,1.0,5.0,1.4383561643835616,0.9225205479452055,1825.0,525.0,0.7123287671232876,relative_cost_scenario_not_currency__same_service_risk_definition

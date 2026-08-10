@@ -39,7 +39,7 @@ ranking = pd.concat([ranking, pd.DataFrame([{"parameter": "rain_daily_attenuatio
 ranking["ranking"] = ranking.sensitivity_effect.rank(method="dense", ascending=False).astype(int)
 ranking = ranking.sort_values(["ranking", "parameter"])
 lambda_rows = []
-for penalty in (1.0, 2.0, 4.0, 6.0, 8.0):
+for penalty in (0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0):
     probe = compare_baseline_with_reoptimisation(bdh, event, scenario_dict("BDH"), risk_penalty=penalty)
     window = probe[probe.date.between("2026-08-06", "2026-08-10")]
     lambda_rows.append({"risk_penalty": penalty, "mean_relative_cost": window.reoptimized_relative_cost.mean(), "mean_experience_loss": window.reoptimized_experience_loss.mean(), "max_temporary_spaces": window.reoptimized_temporary_spaces.max(), "max_shuttle_vehicles": window.reoptimized_shuttle_vehicles.max(), "max_staff_shifts": window.reoptimized_staff_shifts.max()})
