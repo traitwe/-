@@ -1,0 +1,158 @@
+\documentclass[UTF8,12pt,a4paper]{ctexart}
+\usepackage[margin=2.15cm]{geometry}
+\usepackage{amsmath,booktabs,graphicx,float,array}
+\usepackage[hidelinks]{hyperref}
+\graphicspath{{../outputs/figures/}{../outputs/question2_analysis/}{../outputs/question4_analysis/}}
+\title{多源公开数据约束下秦皇岛旅游客流预测与资源协同配置}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+针对秦皇岛全市及北戴河、海港--阿那亚、山海关三片区在日级真实客流、停车占用和接驳调度台账不完整条件下的旅游管理问题，本文构建``客流尺度统一--预测--资源配置--情景重优化''的四阶段方法。首先，以官方年度国内游客量为绝对尺度，以景区排行观测、日历、天气和搜索主题构建三区连续日级相对旅游压力；对未上榜景点采用左删失处理，避免将未展示误作零客流。其次，采用年度增长预测与片区动态 Ridge 预测相结合的方法，输出 2026 年全市年度规模和三区日级分位情景，并以片区 split-conformal 校准报告不确定性。再次，将游客规模换算为停车泊位需求、接驳车辆需求和三班制人员需求，在停车容量、服务班距与班次覆盖约束下搜索离散资源方案。最后，对大型活动和连续降雨情景实施重优化。结果表明：2026 年全市点预测为 9,971.43 万人次；北戴河、海港--阿那亚和山海关暑期日峰值的中位情景分别为 12.75 万、5.82 万和 13.55 万人次。高压情景下，停车缺口应转化为外圈 P+R、预约与错峰需求，而非虚构新增供给。全文将日级客流、资源规模和成本均明确标注为锚点约束估计或情景规划量，不将其表述为运营实测台账。
+
+\noindent\textbf{关键词：}旅游客流；尺度约束；日级预测；资源配置；情景优化
+\end{abstract}
+
+\section{问题重述与总体思路}
+秦皇岛旅游活动具有显著暑期性、节假日脉冲和片区异质性。题目要求构建游客时序、预测未来客流、制定停车--接驳--人员配置，并评估突发场景。困难在于公开数据的统计口径并不一致：全市年度数据具有绝对量，片区日级数据多为景区排行指数或报道锚点，停车和接驳数据也多为设施节点或计划班距。
+
+因此，本文不将缺失记录补造为实测值，而将问题拆为四层：Q1 用年度总量约束日级压力形态；Q2 输出年度点预测与片区日级分位情景；Q3 将需求情景换算为独立量纲的泊位、车辆和人员；Q4 在活动、降雨扰动下重新优化。该路线保证每一层的输出均可追溯至上一层的口径。
+
+\section{数据处理、假设与符号}
+\subsection{数据口径}
+表\ref{tab:data}给出进入主线的数据层级。搜索量仅作需求代理变量，天气词不进入旅游需求主题；不匹配三区范围的景区报道只作合理性核验，不计入误差。
+
+\begin{table}[H]\centering
+\caption{主线数据及使用口径}\label{tab:data}
+\begin{tabular}{p{3.2cm}p{2cm}p{2.4cm}p{5cm}}\toprule
+数据层 & 时间跨度 & 粒度 & 主线用途\\ \midrule
+全市国内游客量 & 2002--2024 & 年度 & 绝对尺度锚点与年度预测\\
+景区排行、天气、节假日、搜索主题 & 2023--2025（搜索扩展至2016--2026） & 日级 & 三区相对压力与日级协变量\\
+公开客流报道锚点 & 2023--2025 & 节假日/暑期 & 尺度校准或外部合理性核验\\
+停车、接驳公开锚点 & 2014--2026 & 节点/班距 & Q3 容量边界和服务班距参照\\ \bottomrule
+\end{tabular}
+\end{table}
+
+设 $Y_y$ 为第 $y$ 年全市官方年度国内游客量，$F_{r,t}$ 为片区 $r$ 在日期 $t$ 的相对旅游压力，$V_{r,t}^{(q)}$ 为锚点约束下的日级游客规模情景，$P_t,N_t,S_t$ 分别为泊位、接驳车辆与三班制人员需求。除 $Y_y$ 外，本文不将上述量称为逐日实测统计。
+
+\subsection{基本假设}
+公开锚点在地域和统计范围一致时可校准尺度；服务班距可作为服务水平约束，但不能反推实际车辆数或载客量；未公布泊位数的停车场只作为换乘节点；车辆座位、满载率、私家车出行比例和服务效率均作为显式情景参数。
+
+\section{问题一：多尺度客流时序构建}
+\subsection{相对压力层与年度尺度层}
+对片区压力取对数变换 $z_{r,t}=\log(1+F_{r,t})$，构建
+\begin{equation}
+z_{r,t}=a_r+\phi_rz_{r,t-1}+\boldsymbol\beta^{\mathsf T}\mathbf X_t+\delta_{r,S_t}+\varepsilon_{r,t},
+\end{equation}
+其中 $\mathbf X_t$ 包含滞后搜索、周末、法定假日和天气，$S_t$ 表示常态、暑期和节假日冲击状态。模型用于区分可解释短期因素与剩余波动，不作因果解释。将三区压力形态归一化为年度日权重，得到
+\begin{equation}
+w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \widehat Y_t=Y_yw_t,
+\end{equation}
+从而严格满足 $\sum_{t\in y}\widehat Y_t=Y_y$。
+
+\subsection{结果与解释}
+2023 年和 2024 年全市官方国内游客量分别为 80,255.2 千人次和 89,457.2 千人次\cite{qhdstat}。图\ref{fig:q1annual}反映长期恢复趋势；图\ref{fig:q1pressure}用于识别三区的时季高压窗口，而非比较三区真实人数大小。未上榜景点被保留为左删失信息，避免零值偏差。
+
+\begin{figure}[H]\centering
+\includegraphics[width=.88\textwidth]{q1_city_annual_trend.png}
+\caption{秦皇岛全市年度国内游客量及趋势}\label{fig:q1annual}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=.88\textwidth]{q1_regional_peak_pressure_2025.png}
+\caption{2025 年三区日级相对旅游压力}\label{fig:q1pressure}
+\end{figure}
+
+\section{问题二：2026 年客流预测}
+\subsection{年度与日级预测}
+年度层比较对数趋势、上一年朴素法和近期中位增长法；日级层以 2024 年 149 条去重片区--日期观测为留出集，比较季节--日历 Ridge、动态 Ridge 和历史星期中位数。动态模型的片区搜索滞后由预预测期真实观测选择，北戴河、海港--阿那亚、山海关分别采用 1、3、2 日滞后。为避免单一全局不确定性掩盖片区差异，对三区分别实施 split-conformal 校准。
+
+\begin{table}[H]\centering
+\caption{预测模型验证结果}\label{tab:q2valid}
+\begin{tabular}{lrrr}\toprule
+模型 & MAE & RMSE & sMAPE(\%)\\ \midrule
+年度：近期中位增长 & 11,331,292 & 24,008,187 & 24.67\\
+日级：季节--日历 Ridge & 0.959 & 1.565 & 67.96\\
+日级：动态 Ridge & 0.918 & 1.504 & 64.30\\
+日级：历史星期中位数 & 1.160 & 2.047 & 65.90\\ \bottomrule
+\end{tabular}
+\end{table}
+
+近期中位增长法给出 2026 年全市点预测 9,971.43 万人次。动态 Ridge 的误差最低，作为日级基准；其区间覆盖率为 0.899。山海关的相对校准半径为 1.572，下界出现零截断，表示高不确定性而非零需求。
+
+\begin{table}[H]\centering
+\caption{2026 年暑期日峰值分位情景（人次）}\label{tab:q2peak}
+\begin{tabular}{lrrr}\toprule
+片区 & $q_{10}$ & $q_{50}$ & $q_{90}$\\ \midrule
+北戴河 & 52,041 & 127,462 & 202,883\\
+海港--阿那亚 & 19,230 & 58,204 & 97,179\\
+山海关 & 0 & 135,474 & 348,466\\ \bottomrule
+\end{tabular}
+\end{table}
+\begin{figure}[H]\centering
+\includegraphics[width=.86\textwidth]{q2_summer_regional_daily_forecast.png}
+\caption{三区 2026 年暑期日级预测及分位情景}\label{fig:q2summer}
+\end{figure}
+
+\section{问题三：停车、接驳与人员协同配置}
+\subsection{需求换算与离散优化}
+设 $V_d$ 为日级游客规模情景，私家车比例为 $\alpha$，平均同行人数为 $o$，高峰到达比例为 $\pi$，停留时间为 $h$，高峰窗口为 $H$，则高峰泊位需求为
+\begin{equation}
+P_d=\left\lceil\frac{V_d\alpha}{o}\pi\frac{h}{H}\right\rceil.
+\end{equation}
+接驳车辆数同时满足运输能力和最大班距约束；人员按入口、停车和驾驶三类服务在早、中、晚三班中覆盖。临时泊位、接驳车辆和人员均在 $\{0,0.2,\ldots,1\}$ 的覆盖档位中搜索，目标函数为相对运行成本与标准化服务缺口的加权和。该成本不是人民币，服务缺口也不是问卷满意度。
+
+北戴河 2024 年暑期旅游公交日间 15 分钟班距作为服务水平事实锚点\cite{bdhbus}；山海关火车站--景区入口的 2026 年 30 分钟班距仅作外部参照\cite{shgbus}，因范围不同不覆盖古城核心情景参数。停车占用报道未进入模型，因为其缺少与三区范围一致的连续逐时占用和泊位口径。
+
+\begin{table}[H]\centering
+\caption{Q3 关键资源需求情景}\label{tab:q3result}
+\begin{tabular}{llrrrr}\toprule
+片区 & 情景 & 峰值泊位需求 & 接驳车辆 & 人员班次 & 停车外溢日数\\ \midrule
+北戴河 & 中位 & 9,389 & 34 & 291 & 0\\
+北戴河 & 高压 & 27,694 & 100 & 583 & 55\\
+海港--阿那亚 & 中位 & 3,898 & 10 & 125 & 229\\
+海港--阿那亚 & 高压 & 12,245 & 38 & 263 & 365\\
+山海关 & 中位 & 9,980 & 22 & 295 & 93\\
+山海关 & 高压 & 47,566 & 137 & 966 & 249\\ \bottomrule
+\end{tabular}
+\end{table}
+
+表\ref{tab:q3result}中的外溢不是对新增停车供给的断言，而是应由外圈 P+R、预约、错峰或限流承接的管理需求。山海关 2,225 个具名古城节点泊位仅是局部硬约束，不代表全区总容量。
+
+\section{问题四：活动与降雨场景重优化}
+对北戴河设置暑期大型活动的预热--峰值--余波扰动，对山海关设置连续五日降雨下的递进需求衰减。每个受扰日均与固定基线方案比较，并重新配置可变泊位、接驳和人员。
+
+\begin{table}[H]\centering
+\caption{反事实场景的重优化结果}\label{tab:q4result}
+\begin{tabular}{lrrrrr}\toprule
+场景 & 基线最大服务缺口 & 重优化成本 & 重优化损失 & 最大接驳车辆 & 最大人员班次\\ \midrule
+活动冲击 & 0.183 & 2.200 & 0.000 & 45 & 392\\
+连续降雨 & 0.259 & 2.200 & 0.099 & 22 & 295\\ \bottomrule
+\end{tabular}
+\end{table}
+
+灵敏度排序显示，接驳分担率、活动强度和私家车比例最影响最大服务缺口。因此活动前两日应根据预售和热度启动 P+R、备用接驳与中班增援；降雨情景则应收缩可变运力，但保留排水、应急引导、咨询和无障碍交通的最低班组。图\ref{fig:q4sensitivity}给出五项情景参数对最大服务缺口的影响排序。
+\begin{figure}[H]\centering
+\includegraphics[width=.80\textwidth]{q4_sensitivity_ranking.png}
+\caption{情景参数对最大服务缺口的影响排序}\label{fig:q4sensitivity}
+\end{figure}
+
+\section{模型评价与结论}
+本文的优点在于：将官方年度总量与片区日级相对信息分层使用；使停车、车辆、人员保持独立单位；把无法证实的运营数据显式保留为情景参数；并以重优化提供可执行的预案。局限在于缺少连续真实入园量、逐时停车占用、车辆调度与实际成本台账，因而日级游客规模和资源配置均为锚点约束估计或情景规划值。
+
+综上，秦皇岛旅游管理应以暑期预配置、节假日动态调度和突发事件预案为主线。北戴河需优先保证旅游专线班距；海港--阿那亚需加强预约、停车和住宿的统一日台账；山海关应把古城节点饱和转化为外圈换乘和分时入城策略。获得实时闸机、停车诱导、调度和订单数据后，可将模型升级为小时级滚动优化。
+
+\section*{数据与复现说明}
+全部输入口径、参数边界与生成结果保存在项目的 \texttt{data}、\texttt{outputs} 和“论文写作”目录。运行 \texttt{scripts/run\_paper\_mainline.py} 可重建主线输出，运行 \texttt{pytest -q} 可执行回归测试。公开网页来源及数据适用边界详见数据登记表与封稿核验文件。
+
+\begin{thebibliography}{9}
+\bibitem{qhdstat} 秦皇岛市统计局. 《秦皇岛市国民经济和社会发展统计公报》[EB/OL]. 项目原始数据登记表所列 2002--2024 年官方年度游客量来源.
+\bibitem{bdhbus} 人民网河北频道. 北戴河开通旅游公交专线 2 路[EB/OL]. \url{https://he.people.com.cn/n2/2024/0705/c192235-40902683.html}.
+\bibitem{shgbus} 北京日报客户端. 山海关暑期交通服务指南[EB/OL]. \url{https://peking.bjd.com.cn/content/s6a48eceee4b0e45f3fd412a0.html}.
+\bibitem{shgtravel} 山海关景区. 交通指南[EB/OL]. \url{https://www.shgjq.com/jtzn/index.jhtml}.
+\bibitem{aranya} 阿那亚戏剧节. Travel Information[EB/OL]. \url{https://www.aranyatheaterfestival.com/en/travel}.
+\end{thebibliography}
+
+\end{document}

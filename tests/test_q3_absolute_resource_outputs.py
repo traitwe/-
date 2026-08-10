@@ -25,6 +25,8 @@ def test_absolute_resource_builder_keeps_scope_and_marks_planning_values():
             "load_factor": [0.8],
             "round_trip_minutes": [30],
             "maximum_headway_minutes": [15],
+            "operational_anchor_id": ["PS-A01"],
+            "headway_evidence_scope": ["2024 summer tourism bus schedule; service benchmark only"],
             "entry_service_rate": [40],
             "parking_service_rate": [50],
             "utilisation_target": [0.8],
@@ -41,6 +43,9 @@ def test_absolute_resource_builder_keeps_scope_and_marks_planning_values():
     assert set(result["capacity_status"]) == {"permanent_capacity_sufficient", "parking_overflow_unserved"}
     assert result["recommended_shuttle_vehicles"].ge(1).all()
     assert result["recommended_total_staff_shifts"].ge(1).all()
+    assert set(result["maximum_headway_minutes"]) == {15}
+    assert set(result["operational_anchor_id"]) == {"PS-A01"}
+    assert set(result["headway_evidence_scope"]) == {"2024 summer tourism bus schedule; service benchmark only"}
     overflow = result.loc[result["unserved_spaces"] > 0]
     assert not overflow.empty
     assert overflow["parking_transfer_vehicle_demand"].eq(overflow["unserved_spaces"]).all()
