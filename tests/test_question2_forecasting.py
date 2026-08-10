@@ -16,7 +16,8 @@ from src.models.question2_forecasting import (
     predict_daily_ridge_forecaster,
     scenario_adjust_weather,
 )
-from src.analysis.q2_forecast_outputs import _daily_comparison, apply_relative_split_conformal_interval, build_climatological_covariates, build_external_anchor_validation, build_q2_diagnostic_figures, build_question2_outputs
+from src.features.search_features import build_search_theme_features
+from src.analysis.q2_forecast_outputs import _attach_covariates, _daily_comparison, apply_regional_relative_split_conformal_interval, apply_relative_split_conformal_interval, build_climatological_covariates, build_external_anchor_validation, build_q2_diagnostic_figures, build_question2_outputs, select_regional_search_lags
 
 
 def test_annual_rolling_origin_splits_keep_all_training_years_before_the_target():
@@ -79,6 +80,20 @@ def test_daily_calendar_features_are_deterministic_from_dates():
     assert result["is_weekend"].tolist() == [1.0, 0.0]
     assert {"annual_sin", "annual_cos"}.issubset(result.columns)
     assert result["weekday_5"].tolist() == [1.0, 0.0]
+
+
+def test_search_theme_features_include_supported_short_lags_for_regional_selection():
+    source = pd.DataFrame({
+        "date": pd.date_range("2024-01-01", periods=8, freq="D"),
+        "keyword": ["秦皇岛旅游"] * 8,
+        "search_index": np.arange(8, dtype=float),
+        "quality_grade": ["A"] * 8,
+        "theme": ["destination"] * 8,
+    })
+
+    result = build_search_theme_features(source)
+
+    assert {"theme_destination_lag_1", "theme_destination_lag_2", "theme_destination_lag_3", "theme_destination_lag_7"}.issubset(result.columns)
 
 
 def test_daily_forecaster_uses_a_positive_training_floor_for_nonnegative_series():
@@ -163,6 +178,26 @@ def test_relative_split_conformal_interval_expands_existing_quantiles_by_calibra
     assert adjusted.loc[0, "prediction_q90"] == pytest.approx(15.0)
 
 
+def test_regional_conformal_calibration_keeps_distinct_region_radii():
+    prediction = pd.DataFrame({
+        "region_code": ["BDH", "HGA"],
+        "prediction_q10": [9.0, 9.0], "prediction_q50": [10.0, 10.0], "prediction_q90": [11.0, 11.0],
+    })
+    calibration = pd.DataFrame({
+        "region_code": ["BDH", "BDH", "HGA", "HGA"],
+        "actual": [5.0, 15.0, 9.0, 11.0], "point": [10.0, 10.0, 10.0, 10.0],
+    })
+
+    adjusted, radii = apply_regional_relative_split_conformal_interval(
+        prediction, calibration, actual_column="actual", point_column="point", coverage=0.8, min_region_rows=2,
+    )
+
+    assert radii.set_index("region_code").loc["BDH", "relative_radius"] == pytest.approx(0.5)
+    assert radii.set_index("region_code").loc["HGA", "relative_radius"] == pytest.approx(0.1)
+    assert adjusted.loc[adjusted["region_code"].eq("BDH"), "prediction_q10"].iloc[0] == pytest.approx(5.0)
+    assert adjusted.loc[adjusted["region_code"].eq("HGA"), "prediction_q10"].iloc[0] == pytest.approx(9.0)
+
+
 def test_daily_comparison_uses_latest_year_with_sufficient_observations_and_reports_interval_metrics():
     dates = pd.date_range("2023-01-01", "2025-12-31", freq="D")
     regional = pd.DataFrame({"date": dates, "region_code": "SHG", "pressure_index": np.linspace(1.0, 2.0, len(dates)), "baseline_scale": 100.0})
@@ -177,7 +212,7 @@ def test_daily_comparison_uses_latest_year_with_sufficient_observations_and_repo
     assert result["holdout_year"].eq(2024).all()
     assert "historical_weekday_median" in set(result["candidate"])
     assert {"picp_80", "mean_interval_width", "interval_calibration", "conformal_relative_radius"}.issubset(result.columns)
-    assert result.loc[result["candidate"].eq("dynamic_ridge"), "interval_calibration"].iloc[0] == "relative_split_conformal_pre_2024"
+    assert result.loc[result["candidate"].eq("dynamic_ridge"), "interval_calibration"].iloc[0] == "regional_relative_split_conformal_pre_2024"
 
 
 def test_climatological_covariates_use_only_history_before_forecast_year():
@@ -192,6 +227,37 @@ def test_climatological_covariates_use_only_history_before_forecast_year():
     assert july_first["rain_mm"] == 3.0
     assert july_first["temperature_c"] == 26.0
     assert july_first["search_lag_1"] == 12.0
+
+
+def test_regional_search_lag_selection_uses_only_observed_training_dates_and_shorter_lag_ties():
+    dates = pd.date_range("2023-01-01", periods=24, freq="D")
+    search = pd.DataFrame({
+        "date": dates,
+        "theme_destination_lag_1": np.arange(24, dtype=float),
+        "theme_destination_lag_2": np.arange(24, dtype=float)[::-1],
+        "theme_destination_lag_3": np.repeat([1.0, 2.0], 12),
+        "theme_destination_lag_7": np.ones(24),
+    })
+    observed = pd.DataFrame({
+        "date": list(dates) * 2,
+        "region_code": ["BDH"] * 24 + ["HGA"] * 24,
+        "visitor_index": list(np.arange(24, dtype=float)) + list(np.arange(24, dtype=float)[::-1]),
+    })
+
+    result = select_regional_search_lags(observed, search, min_rows=20)
+
+    selected = result.set_index("region_code")["selected_search_column"].to_dict()
+    assert selected == {"BDH": "theme_destination_lag_1", "HGA": "theme_destination_lag_1"}
+    assert result["selection_status"].eq("selected_from_observed_training_dates").all()
+
+
+def test_attach_covariates_respects_region_specific_search_lag_values():
+    target = pd.DataFrame({"date": ["2026-07-01", "2026-07-01"], "region_code": ["BDH", "HGA"]})
+    covariates = pd.DataFrame({"date": ["2026-07-01", "2026-07-01"], "region_code": ["BDH", "HGA"], "search_lag_1": [10.0, 20.0]})
+
+    result = _attach_covariates(target, covariates)
+
+    assert result["search_lag_1"].tolist() == [10.0, 20.0]
 
 
 def test_external_anchor_validation_calculates_error_only_for_comparable_citywide_tourism_scope():
@@ -230,13 +296,16 @@ def test_q2_output_builder_writes_constrained_city_and_three_region_forecasts(tm
     assert set(daily["region_code"]) == {"BDH", "HGA", "SHG"}
     assert pd.to_datetime(daily["date"]).dt.year.eq(2026).all()
     assert daily["estimate_label"].eq("anchor_constrained_daily_visitor_forecast").all()
-    assert daily["interval_calibration"].eq("relative_split_conformal_pre_2025").all()
+    assert daily["interval_calibration"].eq("regional_relative_split_conformal_pre_2025").all()
     assert report["daily_validation_scope"] == "raw_attraction_observation_dates_only"
     assert (tmp_path / "q2_annual_model_comparison.csv").exists()
     assert report["annual_selected_model"] in {"weighted_log_trend", "last_year_naive", "recent_median_growth"}
     assert report["daily_validation_covariate_mode"] == "conditional_on_realized_weather_and_lagged_search"
     assert report["weather_response_model"] in {"dynamic_ridge_sensitivity_only", "selected_daily_model"}
     assert 0.0 <= report["rain_shock_effective_share"] <= 1.0
+    calibration = pd.read_csv(tmp_path / "q2_daily_conformal_calibration_2026.csv", encoding="utf-8-sig")
+    assert set(calibration["calibration_status"]).issubset({"region_specific", "global_fallback_insufficient_region_calibration"})
+    assert set(daily["region_code"]).issubset(set(calibration["region_code"]))
 
 
 def test_q2_diagnostic_figures_are_created_from_forecast_tables(tmp_path):

@@ -31,6 +31,8 @@ def minimum_tiers_for_service_tier(service_tier: str) -> dict[str, int]:
 optimized = daily.apply(lambda row: optimize_relative_tiers(float(row["relative_pressure"]), risk_penalty=4.0, budget=budget_by_tier[row["base_service_tier"]], anchor_support=anchor_support[row["region_code"]], minimum_tiers=minimum_tiers_for_service_tier(row["base_service_tier"]))[0], axis=1).apply(pd.Series)
 daily = pd.concat([daily, optimized.drop(columns=["target_tier"], errors="ignore")], axis=1)
 daily["output_status"] = "relative_service_intensity_not_exact_resource_count"
+daily["parameter_basis_ids"] = "LA-R01:LA-R14"
+daily["parameter_basis_register"] = "data/model_input/q3_parameter_basis_register.csv"
 output = ROOT / "outputs/question3_analysis"; output.mkdir(parents=True, exist_ok=True)
 daily.to_csv(output / "q3_daily_relative_service_tiers_2026.csv", index=False, encoding="utf-8-sig")
 summary = daily.groupby(["region_code", "base_service_tier"], as_index=False).size().rename(columns={"size": "days"})

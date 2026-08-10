@@ -7,12 +7,17 @@
   ],
   "annual_selected_model": "recent_median_growth",
   "daily_selected_model": "dynamic_ridge",
-  "daily_interval_calibration": "relative_split_conformal_pre_2024",
-  "daily_conformal_relative_radius": 0.8513219196686409,
+  "daily_interval_calibration": "regional_relative_split_conformal_pre_2024",
+  "daily_conformal_relative_radius": 0.669618987657548,
+  "daily_conformal_relative_radius_by_region": {
+    "BDH": 0.5917131323393473,
+    "HGA": 0.669618987657548,
+    "SHG": 1.5722045471727544
+  },
   "daily_validation_scope": "raw_attraction_observation_dates_only",
   "daily_validation_covariate_mode": "conditional_on_realized_weather_and_lagged_search",
   "weather_response_model": "selected_daily_model",
   "weather_shock_effective": true,
-  "rain_shock_effective_share": 0.7461187214611873,
+  "rain_shock_effective_share": 0.7616438356164383,
   "regional_daily_unit": "anchor_constrained_visitor_scale_estimate_not_observed_count"
 }

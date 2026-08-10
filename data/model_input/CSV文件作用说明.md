@@ -16,7 +16,8 @@
 | 文件 | 作用 | 核心字段/正确用法 | 当前定位 |
 |---|---|---|---|
 | `search_keyword_rules.csv` | 17 个百度指数关键词的人工规则表。 | `keyword`、质量等级 `quality_grade`、主题 `theme`；天气词仅作天气控制，不进入旅游需求主题。 | 搜索特征的规则输入。 |
-| `daily_search_theme_features_2016_2026.csv` | 将 A/B 级关键词按年标准化后聚合成景点、海滨度假、目的地三类搜索主题，并生成滞后 1/7 天特征。 | `theme_*`、`theme_*_lag_1`、`theme_*_lag_7`；预测模型优先使用滞后项，避免使用未来搜索信息。 | 问题一压力基线的解释变量；问题二也将复用。 |
+| `daily_search_theme_features_2016_2026.csv` | 将 A/B 级关键词按年标准化后聚合成景点、海滨度假、目的地三类搜索主题，并生成滞后 1/2/3/7 天特征。 | `theme_*`、`theme_*_lag_1/2/3/7`；预测模型仅使用滞后项，避免使用未来搜索信息。问题二在真实观测日期内按片区选择目的地主题的一个候选滞后，选择记录另存于 `outputs/question2_analysis/q2_regional_search_lag_selection.csv`。 | 问题一压力基线的解释变量；问题二动态协变量。 |
+| `q3_parameter_basis_register.csv` | 对相对资源优化中不可由本地运营台账直接标定的预算、相对成本、风险权重与安全系数逐项编号。 | `LA-R01`—`LA-R14`、参数值/规则、适用范围、依据类别与边界。 | 问题三、四的参数追溯附录；不将相对权重误写为人民币成本。 |
 | `censored_attraction_observation_panel.csv` | 地图景点客流排名数据构造的“景点—实际采样日”面板。 | `density` 表示有相对客流指数观测；`left_censored` 表示同一采样日未上榜，绝不等于零客流；`visitor_index` 仅在 `density` 行有效。 | 问题一排名截断观测层的原始输入。 |
 | `censored_observation_diagnostics.csv` | 将景点排名面板按采样日和片区汇总为左删失诊断。 | `density_count`、`left_censored_count`、`censor_threshold_index`、`total_log_likelihood`、`uncertainty_flag`；仅衡量同一实际采样日内的选择机制。 | 问题一左删失观测层输出；不含任何未上榜景点的补全客流。`no_positive_density_index` 表示只有零指数上榜记录，未强行构造阈值。 |
 | `calibration_anchors_prepared.csv` | 将公开报道的游客量统一成可用于后续判断的期间总量锚点。 | `visitor_total`、`period_start/end`、`region_code`、`anchor_use`、`source_dataset`；CITY、BDH、HGA、SHG、ARA、BND 等口径不得直接相加。 | 锚点标准化中间表，保留全部可核验记录。 |

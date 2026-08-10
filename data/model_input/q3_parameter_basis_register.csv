@@ -1,0 +1,15 @@
+parameter_id,parameter_name,value_or_rule,scope,basis_class,basis_note,sensitivity_or_boundary
+LA-R01,budget_normal,1.2,relative-tier normal day,planning control,normal-tier budget ceiling chosen to permit baseline service only,reported as scenario control not currency
+LA-R02,budget_surge,3.0,relative-tier surge day,planning control,surge-tier budget ceiling permits multi-resource response,reported as scenario control not currency
+LA-R03,budget_emergency,5.5,relative-tier emergency day,planning control,emergency ceiling permits all four resources at elevated tiers,reported as scenario control not currency
+LA-R04,cost_staff,1.0,relative objective,normalization anchor,staff tier cost is the unit reference,relative cost only
+LA-R05,cost_entry,0.8,relative objective,normalization anchor,entry tier burden relative to staff reference,relative cost only
+LA-R06,cost_parking_guidance,0.6,relative objective,normalization anchor,parking guidance burden relative to staff reference,relative cost only
+LA-R07,cost_shuttle,1.2,relative objective,normalization anchor,shuttle burden relative to staff reference,relative cost only
+LA-R08,risk_staff,1.0,relative risk,normalization anchor,staff shortage reference weight,standardized risk only
+LA-R09,risk_entry,1.0,relative risk,normalization anchor,entry shortage reference weight,standardized risk only
+LA-R10,risk_parking_guidance,0.8,relative risk,normalization anchor,parking guidance shortage relative weight,standardized risk only
+LA-R11,risk_shuttle,1.2,relative risk,normalization anchor,shuttle shortage relative weight,standardized risk only
+LA-R12,risk_penalty,4.0,Q3 selected relative plan,decision preference,chosen planning trade-off coefficient; Pareto table reports alternatives 1 to 8,not monetary and not transferable
+LA-R13,static_safety_factor,1.2,static comparison baseline,safety scenario,historical peak pressure multiplied by 1.2 for conservative static baseline,explicitly varied only by future sensitivity work
+LA-R14,emergency_minimum_shuttle,shuttle_tier>=1,emergency tier,service floor,emergency coordination must retain basic shuttle deployment,hard service floor

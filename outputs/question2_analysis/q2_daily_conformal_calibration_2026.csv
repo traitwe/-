@@ -1,0 +1,4 @@
+﻿region_code,relative_radius,calibration_rows,calibration_status,global_fallback_radius,calibration_method
+BDH,0.5917131323,90,region_specific,0.8490320244,regional_relative_split_conformal_pre_2024
+HGA,0.6696189877,67,region_specific,0.8490320244,regional_relative_split_conformal_pre_2024
+SHG,1.5722045472,27,region_specific,0.8490320244,regional_relative_split_conformal_pre_2024

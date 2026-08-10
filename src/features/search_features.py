@@ -49,5 +49,7 @@ def build_search_theme_features(frame: pd.DataFrame) -> pd.DataFrame:
     theme_columns = [column for column in result.columns if column.startswith("theme_")]
     for column in theme_columns:
         result[f"{column}_lag_1"] = result[column].shift(1)
+        result[f"{column}_lag_2"] = result[column].shift(2)
+        result[f"{column}_lag_3"] = result[column].shift(3)
         result[f"{column}_lag_7"] = result[column].shift(7)
     return result

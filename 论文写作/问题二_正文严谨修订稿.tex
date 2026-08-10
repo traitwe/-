@@ -16,12 +16,12 @@
 \end{tabular}\end{table}
 \begin{figure}[H]\centering\includegraphics[width=.9\textwidth]{q2_city_monthly_forecast.png}\caption{全市月度预测}\end{figure}
 \section{三区日级预测}
-以2024年149条去重“片区--日期”观测作为完全留出集（2025年仅14条，不参与筛选）。动态Ridge的MAE、RMSE、sMAPE为0.896、1.467、63.99\%，优于季节--日历Ridge的0.959、1.565、67.96\%，故作为日级基准。仅用2023年184条观测的相对残差进行split-conformal校准后，动态Ridge在2024留出集上的80\%区间覆盖率为82.55\%，平均区间宽度为3.385个观测指数单位；该相对校准半径为0.851，并随比例缩放到2026年锚点约束预测区间。暑期日峰值的三个分位数见表\ref{tab:q2peak}。
+以2024年149条去重“片区--日期”观测作为完全留出集（2025年仅14条，不参与筛选）。目的地搜索仅在预测期前的真实观测日期中，从1、2、3、7日滞后按片区选择；北戴河、海港--阿那亚、山海关依次取1、3、2日。动态Ridge的MAE、RMSE、sMAPE为0.918、1.504、64.30\%，优于季节--日历Ridge的0.959、1.565、67.96\%，故作为日级基准。仅用2023年184条观测进行区域split-conformal校准后，三区半径依次为0.592、0.670、1.572；山海关半径大于1，故其下界截断为零并明确解释为高不确定性警示，而不是精确区间。暑期日峰值的三个分位数见表\ref{tab:q2peak}。
 \begin{table}[H]\centering\caption{2026年暑期日峰值分位情景（人次）}\label{tab:q2peak}\begin{tabular}{lrrr}\toprule
 片区&q10&q50&q90\\\midrule
-北戴河&20\,084&135\,081&250\,078\\
-海港--阿那亚&8\,525&57\,337&106\,150\\
-山海关&21\,520&144\,744&267\,968\\\bottomrule
+北戴河&52\,041&127\,462&202\,883\\
+海港--阿那亚&19\,230&58\,204&97\,179\\
+山海关&0&135\,474&348\,466\\\bottomrule
 \end{tabular}\end{table}
 \begin{figure}[H]\centering\includegraphics[width=.9\textwidth]{q2_summer_regional_daily_forecast.png}\caption{三大片区暑期日级预测}\end{figure}
 \section{外部锚点与结论}

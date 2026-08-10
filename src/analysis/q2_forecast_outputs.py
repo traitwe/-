@@ -60,6 +60,61 @@ def apply_relative_split_conformal_interval(
     return result, radius
 
 
+def apply_regional_relative_split_conformal_interval(
+    prediction: pd.DataFrame,
+    calibration: pd.DataFrame,
+    actual_column: str,
+    point_column: str,
+    coverage: float = 0.8,
+    min_region_rows: int = 20,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Calibrate relative conformal radii by region, with explicit global fallback.
+
+    A shared radius obscures regional heterogeneity.  Each region with enough
+    usable calibration observations obtains its own finite-sample radius; a
+    smaller region falls back to the global radius and is labelled as such.
+    """
+    required_prediction = {"region_code", "prediction_q10", "prediction_q50", "prediction_q90"}
+    required_calibration = {"region_code", actual_column, point_column}
+    if required_prediction.difference(prediction.columns) or required_calibration.difference(calibration.columns):
+        raise ValueError("regional conformal inputs are incomplete")
+    if min_region_rows < 1:
+        raise ValueError("min_region_rows must be positive")
+    _, global_radius = apply_relative_split_conformal_interval(
+        prediction,
+        calibration_actual=calibration[actual_column],
+        calibration_point=calibration[point_column],
+        coverage=coverage,
+    )
+    result = prediction.copy()
+    records: list[dict[str, object]] = []
+    regions = sorted(result["region_code"].astype(str).unique())
+    for region in regions:
+        subset = calibration.loc[calibration["region_code"].astype(str).eq(region), [actual_column, point_column]]
+        actual = pd.to_numeric(subset[actual_column], errors="coerce")
+        point = pd.to_numeric(subset[point_column], errors="coerce")
+        usable = actual.notna() & point.notna() & point.abs().gt(1e-9)
+        usable_rows = int(usable.sum())
+        if usable_rows >= min_region_rows:
+            _, radius = apply_relative_split_conformal_interval(
+                result.loc[result["region_code"].astype(str).eq(region)],
+                calibration_actual=actual.loc[usable],
+                calibration_point=point.loc[usable],
+                coverage=coverage,
+            )
+            status = "region_specific"
+        else:
+            radius = global_radius
+            status = "global_fallback_insufficient_region_calibration"
+        mask = result["region_code"].astype(str).eq(region)
+        lower = result.loc[mask, "prediction_q50"] * max(0.0, 1.0 - radius)
+        upper = result.loc[mask, "prediction_q50"] * (1.0 + radius)
+        result.loc[mask, "prediction_q10"] = np.minimum(result.loc[mask, "prediction_q10"], lower)
+        result.loc[mask, "prediction_q90"] = np.maximum(result.loc[mask, "prediction_q90"], upper)
+        records.append({"region_code": region, "relative_radius": float(radius), "calibration_rows": usable_rows, "calibration_status": status, "global_fallback_radius": float(global_radius)})
+    return result, pd.DataFrame(records)
+
+
 def _monthly_shape(regional: pd.DataFrame, end_year: int) -> np.ndarray:
     frame = regional.copy(); frame["date"] = pd.to_datetime(frame["date"], errors="raise")
     frame = frame.loc[frame["date"].dt.year <= end_year].copy()
@@ -79,13 +134,74 @@ def build_climatological_covariates(covariates: pd.DataFrame, forecast_year: int
     if not feature_columns:
         return dates
     source["month"] = source["date"].dt.month; source["day"] = source["date"].dt.day
-    profile = source.groupby(["month", "day"], as_index=False)[feature_columns].median()
+    region_specific = "region_code" in source.columns
+    if region_specific:
+        regions = pd.DataFrame({"region_code": sorted(source["region_code"].astype(str).unique())})
+        dates["_key"] = 1; regions["_key"] = 1
+        dates = dates.merge(regions, on="_key", how="inner").drop(columns="_key")
+    group_columns = (["region_code"] if region_specific else []) + ["month", "day"]
+    profile = source.groupby(group_columns, as_index=False)[feature_columns].median()
     dates["month"] = dates["date"].dt.month; dates["day"] = dates["date"].dt.day
-    result = dates.merge(profile, on=["month", "day"], how="left")
-    monthly = source.groupby(source["date"].dt.month)[feature_columns].median()
+    result = dates.merge(profile, on=group_columns, how="left")
+    monthly_group = (["region_code"] if region_specific else []) + ["month"]
+    monthly = source.groupby(monthly_group, as_index=False)[feature_columns].median()
+    result = result.merge(monthly, on=monthly_group, how="left", suffixes=("", "_monthly"))
     for column in feature_columns:
-        result[column] = result[column].fillna(result["month"].map(monthly[column])).fillna(float(source[column].median()))
+        result[column] = result[column].fillna(result[f"{column}_monthly"]).fillna(float(source[column].median()))
+    result = result.drop(columns=[f"{column}_monthly" for column in feature_columns])
     return result.drop(columns=["month", "day"])
+
+
+def select_regional_search_lags(
+    observed: pd.DataFrame,
+    search_features: pd.DataFrame,
+    min_rows: int = 20,
+) -> pd.DataFrame:
+    """Choose a destination-search lag per region from observed pre-forecast dates.
+
+    The selector is deliberately descriptive: it uses only the sparse, real
+    attraction-index observations available before the 2026 forecast year and
+    records its sample size and rank correlation instead of claiming a causal
+    demand effect.
+    """
+    required_observed = {"date", "region_code", "visitor_index"}
+    if required_observed.difference(observed.columns) or "date" not in search_features.columns:
+        raise ValueError("observed and search features do not contain required columns")
+    candidates = [
+        column for column in [
+            "theme_destination_lag_1", "theme_destination_lag_2",
+            "theme_destination_lag_3", "theme_destination_lag_7",
+        ] if column in search_features.columns
+    ]
+    if not candidates:
+        raise ValueError("search features contain no supported destination-search lags")
+    source = search_features.loc[:, ["date", *candidates]].copy()
+    source["date"] = pd.to_datetime(source["date"], errors="raise")
+    panel = observed.loc[:, ["date", "region_code", "visitor_index"]].copy()
+    panel["date"] = pd.to_datetime(panel["date"], errors="raise")
+    panel["visitor_index"] = pd.to_numeric(panel["visitor_index"], errors="coerce")
+    panel = panel.dropna(subset=["visitor_index"]).groupby(["date", "region_code"], as_index=False)["visitor_index"].median()
+    merged = panel.merge(source, on="date", how="left")
+    lag_order = {column: int(column.rsplit("_", 1)[-1]) for column in candidates}
+    rows: list[dict[str, object]] = []
+    for region, group in merged.groupby("region_code", sort=True):
+        scores = []
+        for column in candidates:
+            valid = group.loc[:, ["visitor_index", column]].dropna()
+            has_variation = valid["visitor_index"].nunique() > 1 and valid[column].nunique() > 1
+            correlation = valid["visitor_index"].corr(valid[column], method="spearman") if len(valid) >= min_rows and has_variation else np.nan
+            scores.append((column, int(len(valid)), float(correlation) if pd.notna(correlation) else np.nan))
+        eligible = [score for score in scores if score[1] >= min_rows and np.isfinite(score[2])]
+        if eligible:
+            selected, rows_used, correlation = sorted(eligible, key=lambda item: (-abs(item[2]), lag_order[item[0]]))[0]
+            status = "selected_from_observed_training_dates"
+        else:
+            selected = min(candidates, key=lambda column: lag_order[column])
+            rows_used = next(score[1] for score in scores if score[0] == selected)
+            correlation = next(score[2] for score in scores if score[0] == selected)
+            status = "fallback_shortest_lag_insufficient_observations"
+        rows.append({"region_code": str(region), "selected_search_column": selected, "selected_lag_days": lag_order[selected], "observed_rows": rows_used, "spearman_correlation": correlation, "selection_status": status})
+    return pd.DataFrame(rows)
 
 
 def build_external_anchor_validation(anchors: pd.DataFrame, city_daily: pd.DataFrame, regional_daily: pd.DataFrame) -> pd.DataFrame:
@@ -123,8 +239,13 @@ def _attach_covariates(frame: pd.DataFrame, covariates: pd.DataFrame | None) -> 
         return frame.copy()
     result = frame.copy(); result["date"] = pd.to_datetime(result["date"], errors="raise")
     source = covariates.copy(); source["date"] = pd.to_datetime(source["date"], errors="raise")
-    columns = [column for column in ["date", "rain_mm", "temperature_c", "search_lag_1"] if column in source.columns]
-    return result.merge(source.loc[:, columns].drop_duplicates("date"), on="date", how="left")
+    join_columns = ["date"]
+    if "region_code" in source.columns:
+        if "region_code" not in result.columns:
+            raise ValueError("region-specific covariates require region_code in target frame")
+        join_columns.append("region_code")
+    columns = [*join_columns, *[column for column in ["rain_mm", "temperature_c", "search_lag_1"] if column in source.columns]]
+    return result.merge(source.loc[:, columns].drop_duplicates(join_columns), on=join_columns, how="left")
 
 
 def _daily_comparison(regional: pd.DataFrame, observed: pd.DataFrame, covariates: pd.DataFrame | None = None, min_holdout_rows: int = 50) -> tuple[pd.DataFrame, bool]:
@@ -176,12 +297,14 @@ def _daily_comparison(regional: pd.DataFrame, observed: pd.DataFrame, covariates
         )
         calibration_scale = calibration_prediction["region_code"].map(scales).fillna(1.0)
         calibration_prediction["prediction_q50"] *= calibration_scale
-        merged, radius = apply_relative_split_conformal_interval(
+        merged, regional_radii = apply_regional_relative_split_conformal_interval(
             merged,
-            calibration_actual=calibration_prediction["visitor_index"],
-            calibration_point=calibration_prediction["prediction_q50"],
+            calibration_prediction,
+            actual_column="visitor_index",
+            point_column="prediction_q50",
         )
-        row = {"candidate": name, "test_rows": int(len(merged)), "holdout_year": holdout_year, **_score(merged["visitor_index"], merged["prediction_q50"]), "picp_80": float(((merged["visitor_index"] >= merged["prediction_q10"]) & (merged["visitor_index"] <= merged["prediction_q90"])).mean()), "mean_interval_width": float((merged["prediction_q90"] - merged["prediction_q10"]).mean()), "interval_calibration": f"relative_split_conformal_pre_{holdout_year}", "conformal_relative_radius": radius, "calibration_rows": int(len(calibration_prediction))}
+        radius_map = dict(zip(regional_radii["region_code"], regional_radii["relative_radius"]))
+        row = {"candidate": name, "test_rows": int(len(merged)), "holdout_year": holdout_year, **_score(merged["visitor_index"], merged["prediction_q50"]), "picp_80": float(((merged["visitor_index"] >= merged["prediction_q10"]) & (merged["visitor_index"] <= merged["prediction_q90"])).mean()), "mean_interval_width": float((merged["prediction_q90"] - merged["prediction_q10"]).mean()), "interval_calibration": f"regional_relative_split_conformal_pre_{holdout_year}", "conformal_relative_radius": float(np.median(regional_radii["relative_radius"])), "conformal_relative_radius_by_region": json.dumps(radius_map, ensure_ascii=False, sort_keys=True), "conformal_calibration_by_region": regional_radii.to_json(orient="records", force_ascii=False), "calibration_rows": int(len(calibration_prediction))}
         rows.append(row)
     weekday_median = train.copy(); weekday_median["weekday"] = pd.to_datetime(weekday_median["date"]).dt.dayofweek
     test_naive = observed_frame.copy(); test_naive["weekday"] = test_naive["date"].dt.dayofweek
@@ -189,7 +312,7 @@ def _daily_comparison(regional: pd.DataFrame, observed: pd.DataFrame, covariates
     medians = historical.groupby(["region_code", "weekday"])["visitor_index"].median()
     test_naive["prediction"] = [medians.get((row.region_code, row.weekday), historical["visitor_index"].median()) for row in test_naive.itertuples()]
     if not test_naive.empty:
-        rows.append({"candidate": "historical_weekday_median", "test_rows": int(len(test_naive)), "holdout_year": holdout_year, **_score(test_naive["visitor_index"], test_naive["prediction"]), "picp_80": np.nan, "mean_interval_width": np.nan, "interval_calibration": "not_applicable", "conformal_relative_radius": np.nan, "calibration_rows": int(len(calibration))})
+        rows.append({"candidate": "historical_weekday_median", "test_rows": int(len(test_naive)), "holdout_year": holdout_year, **_score(test_naive["visitor_index"], test_naive["prediction"]), "picp_80": np.nan, "mean_interval_width": np.nan, "interval_calibration": "not_applicable", "conformal_relative_radius": np.nan, "conformal_relative_radius_by_region": "", "conformal_calibration_by_region": "", "calibration_rows": int(len(calibration))})
     comparison = pd.DataFrame(rows)
     return comparison, comparison.empty
 
@@ -246,6 +369,8 @@ def build_question2_outputs(
     selected_validation = model_comparison.sort_values("mae").iloc[0] if not model_comparison.empty else None
     selected_dynamic = bool(selected_validation["candidate"] == "dynamic_ridge") if selected_validation is not None else True
     conformal_radius = float(selected_validation["conformal_relative_radius"]) if selected_validation is not None and pd.notna(selected_validation.get("conformal_relative_radius")) else np.nan
+    regional_radius_map = json.loads(str(selected_validation["conformal_relative_radius_by_region"])) if selected_validation is not None and pd.notna(selected_validation.get("conformal_relative_radius_by_region")) and str(selected_validation["conformal_relative_radius_by_region"]).strip() else {}
+    regional_calibration_records = json.loads(str(selected_validation["conformal_calibration_by_region"])) if selected_validation is not None and pd.notna(selected_validation.get("conformal_calibration_by_region")) and str(selected_validation["conformal_calibration_by_region"]).strip() else []
     interval_calibration = str(selected_validation["interval_calibration"]) if selected_validation is not None and pd.notna(selected_validation.get("interval_calibration")) else "model_quantile_only_no_calibration_observations"
     train = regional.loc[pd.to_datetime(regional["date"], errors="raise").dt.year < forecast_year].copy()
     train = _attach_covariates(train, daily_covariates)
@@ -256,13 +381,23 @@ def build_question2_outputs(
     future_covariates = build_climatological_covariates(daily_covariates, forecast_year) if daily_covariates is not None else None
     future = _attach_covariates(future, future_covariates)
     daily = predict_daily_ridge_forecaster(daily_model, future)
-    if np.isfinite(conformal_radius):
+    if regional_radius_map:
+        radii = daily["region_code"].map(regional_radius_map).fillna(conformal_radius)
+        lower = daily["prediction_q50"] * np.maximum(0.0, 1.0 - radii)
+        upper = daily["prediction_q50"] * (1.0 + radii)
+        daily["prediction_q10"] = np.minimum(daily["prediction_q10"], lower)
+        daily["prediction_q90"] = np.maximum(daily["prediction_q90"], upper)
+    elif np.isfinite(conformal_radius):
         lower = daily["prediction_q50"] * max(0.0, 1.0 - conformal_radius)
         upper = daily["prediction_q50"] * (1.0 + conformal_radius)
         daily["prediction_q10"] = np.minimum(daily["prediction_q10"], lower)
         daily["prediction_q90"] = np.maximum(daily["prediction_q90"], upper)
     daily["interval_calibration"] = interval_calibration
-    daily["conformal_relative_radius"] = conformal_radius
+    daily["conformal_relative_radius"] = daily["region_code"].map(regional_radius_map).fillna(conformal_radius)
+    calibration_table = pd.DataFrame(regional_calibration_records)
+    if not calibration_table.empty:
+        calibration_table["calibration_method"] = interval_calibration
+    calibration_table.to_csv(output / f"q2_daily_conformal_calibration_{forecast_year}.csv", index=False, encoding="utf-8-sig")
     scales = train.assign(date=pd.to_datetime(train["date"], errors="raise")).sort_values("date").groupby("region_code", as_index=False)["baseline_scale"].last()
     daily = daily.merge(scales, on="region_code", how="left")
     for quantile in ["q10", "q50", "q90"]:
@@ -305,6 +440,7 @@ def build_question2_outputs(
         "daily_selected_model": "dynamic_ridge" if selected_dynamic else "seasonal_calendar_ridge",
         "daily_interval_calibration": interval_calibration,
         "daily_conformal_relative_radius": None if not np.isfinite(conformal_radius) else conformal_radius,
+        "daily_conformal_relative_radius_by_region": regional_radius_map,
         "daily_validation_scope": "raw_attraction_observation_dates_only" if not no_independent_observation else "no_independent_observation_available",
         "daily_validation_covariate_mode": "conditional_on_realized_weather_and_lagged_search" if daily_covariates is not None else "calendar_only",
         "weather_response_model": weather_response_model,
