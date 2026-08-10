@@ -1,10 +1,18 @@
 .venv/
+.idea/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .codex/
 tmp/
 q2_*test*/
+q3_*test*/
+
+# Local source and reference libraries retained for traceability, not versioned.
+国赛参考/
+文献资料包/
+数学建模方法及skill整理.zip
+docs/superpowers/
 
 data/raw/*
 !data/raw/.gitkeep

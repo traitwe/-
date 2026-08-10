@@ -1,0 +1,6 @@
+﻿risk_penalty,mean_relative_cost,mean_experience_loss,max_temporary_spaces,max_shuttle_vehicles,max_staff_shifts
+1.0,0.6618668992871192,1.5381331007128807,0.0,18.0,86.0
+2.0,2.2,0.0,0.0,33.0,288.0
+4.0,2.2,0.0,0.0,33.0,288.0
+6.0,2.2,0.0,0.0,33.0,288.0
+8.0,2.2,0.0,0.0,33.0,288.0
