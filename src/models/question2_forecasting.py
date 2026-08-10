@@ -269,21 +269,21 @@ def predict_daily_ridge_forecaster(model: DailyRidgeForecaster, frame: pd.DataFr
     log_point = standardized @ np.asarray(model.coefficients)
     half_width = interval_z * model.residual_std
     result = frame.loc[:, [name for name in ["date", "region_code"] if name in frame.columns]].copy()
-    result["prediction_q10"] = np.maximum(np.expm1(log_point - half_width), model.prediction_floor)
+    result["prediction_q10"] = np.maximum(np.expm1(log_point - half_width), 0.0)
     result["prediction_q50"] = np.maximum(np.expm1(log_point), model.prediction_floor)
-    result["prediction_q90"] = np.maximum(np.expm1(log_point + half_width), model.prediction_floor)
+    result["prediction_q90"] = np.maximum(np.expm1(log_point + half_width), result["prediction_q50"])
     result["estimate_label"] = "anchor_constrained_daily_visitor_forecast"
     result["forecast_method"] = "dynamic_ridge" if model.dynamic else "seasonal_calendar_ridge"
     return result
 
 
-def scenario_adjust_weather(frame: pd.DataFrame, rain_multiplier: float = 1.0, temperature_shift_c: float = 0.0) -> pd.DataFrame:
+def scenario_adjust_weather(frame: pd.DataFrame, rain_multiplier: float = 1.0, rain_add_mm: float = 0.0, temperature_shift_c: float = 0.0) -> pd.DataFrame:
     """Create a weather-only scenario without changing date, search, or regional inputs."""
-    if rain_multiplier < 0:
-        raise ValueError("rain_multiplier must be non-negative")
+    if rain_multiplier < 0 or rain_add_mm < 0:
+        raise ValueError("rain_multiplier and rain_add_mm must be non-negative")
     result = frame.copy()
     if "rain_mm" in result.columns:
-        result["rain_mm"] = pd.to_numeric(result["rain_mm"], errors="coerce") * rain_multiplier
+        result["rain_mm"] = pd.to_numeric(result["rain_mm"], errors="coerce") * rain_multiplier + rain_add_mm
     if "temperature_c" in result.columns:
         result["temperature_c"] = pd.to_numeric(result["temperature_c"], errors="coerce") + temperature_shift_c
     return result

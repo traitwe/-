@@ -1,4 +1,4 @@
-from src.models.question3_relative_optimizer import optimize_relative_tiers
+from src.models.question3_relative_optimizer import independent_static_tiers, optimize_relative_tiers
 
 
 def test_relative_optimizer_upgrades_high_pressure_service_bundle():
@@ -24,3 +24,21 @@ def test_local_anchor_support_reduces_only_the_matching_resource_risk():
 
     assert supported.loc[0, "parking_guidance_risk"] < baseline.loc[0, "parking_guidance_risk"]
     assert supported.loc[0, "shuttle_risk"] == baseline.loc[0, "shuttle_risk"]
+
+
+def test_emergency_minimum_shuttle_tier_is_honoured_even_when_budget_would_prefer_zero():
+    chosen, diagnostics = optimize_relative_tiers(
+        relative_pressure=1.9,
+        risk_penalty=4.0,
+        budget=5.5,
+        minimum_tiers={"shuttle": 1},
+    )
+
+    assert chosen["shuttle_tier"] >= 1
+    assert diagnostics["shuttle_tier"].ge(1).all()
+
+
+def test_independent_static_tiers_use_historical_peak_and_safety_factor_not_dynamic_solution():
+    result = independent_static_tiers(historical_peak_relative_pressure=1.6, safety_factor=1.2)
+
+    assert result == {"staff_tier": 2, "entry_tier": 2, "parking_guidance_tier": 2, "shuttle_tier": 2}

@@ -28,6 +28,38 @@ def _score(actual: pd.Series, prediction: pd.Series) -> dict[str, float]:
     return {"mae": float(np.abs(residual).mean()), "rmse": float(np.sqrt(np.mean(residual**2))), "smape": float(100.0 * np.mean(np.abs(residual) / denominator))}
 
 
+def apply_relative_split_conformal_interval(
+    prediction: pd.DataFrame,
+    calibration_actual: pd.Series,
+    calibration_point: pd.Series,
+    coverage: float = 0.8,
+) -> tuple[pd.DataFrame, float]:
+    """Expand forecast intervals by a scale-free split-conformal residual radius.
+
+    The calibration residual is expressed relative to the point prediction, so
+    it can be transferred from an index-scale validation table to an
+    anchor-scaled visitor forecast without mixing their units.
+    """
+    required = {"prediction_q10", "prediction_q50", "prediction_q90"}
+    if missing := required - set(prediction.columns):
+        raise ValueError(f"prediction missing columns: {sorted(missing)}")
+    if not 0 < coverage < 1:
+        raise ValueError("coverage must be in (0, 1)")
+    actual = pd.to_numeric(calibration_actual, errors="coerce").to_numpy(dtype=float)
+    point = pd.to_numeric(calibration_point, errors="coerce").to_numpy(dtype=float)
+    usable = np.isfinite(actual) & np.isfinite(point) & (np.abs(point) > 1e-9)
+    if not usable.any():
+        raise ValueError("no usable calibration residuals")
+    relative_errors = np.abs(actual[usable] - point[usable]) / np.abs(point[usable])
+    radius = float(np.quantile(relative_errors, coverage, method="higher"))
+    result = prediction.copy()
+    lower = result["prediction_q50"] * max(0.0, 1.0 - radius)
+    upper = result["prediction_q50"] * (1.0 + radius)
+    result["prediction_q10"] = np.minimum(result["prediction_q10"], lower)
+    result["prediction_q90"] = np.maximum(result["prediction_q90"], upper)
+    return result, radius
+
+
 def _monthly_shape(regional: pd.DataFrame, end_year: int) -> np.ndarray:
     frame = regional.copy(); frame["date"] = pd.to_datetime(frame["date"], errors="raise")
     frame = frame.loc[frame["date"].dt.year <= end_year].copy()
@@ -105,16 +137,16 @@ def _daily_comparison(regional: pd.DataFrame, observed: pd.DataFrame, covariates
         observed_frame["region_code"].astype(str).isin(regional["region_code"].astype(str).unique())
         & observed_frame["date"].between(regional_dates.min(), regional_dates.max())
     ].copy()
-    observed_frame = observed_frame.groupby(["date", "region_code"], as_index=False)["visitor_index"].median()
-    if observed_frame.empty:
+    observed_panel = observed_frame.groupby(["date", "region_code"], as_index=False)["visitor_index"].median()
+    if observed_panel.empty:
         return pd.DataFrame(columns=["candidate", "test_rows", "mae", "rmse", "smape"]), True
-    year_counts = observed_frame.groupby(observed_frame["date"].dt.year).size()
+    year_counts = observed_panel.groupby(observed_panel["date"].dt.year).size()
     eligible_years = year_counts.loc[year_counts.ge(min_holdout_rows)]
     if eligible_years.empty:
         return pd.DataFrame(columns=["candidate", "test_rows", "mae", "rmse", "smape", "picp_80", "mean_interval_width", "holdout_year"]), True
     holdout_year = int(eligible_years.index.max())
     first_test_date = pd.Timestamp(f"{holdout_year}-01-01")
-    observed_frame = observed_frame.loc[observed_frame["date"].dt.year.eq(holdout_year)].copy()
+    observed_frame = observed_panel.loc[observed_panel["date"].dt.year.eq(holdout_year)].copy()
     train = regional.loc[pd.to_datetime(regional["date"], errors="raise") < first_test_date].copy()
     train = _attach_covariates(train, covariates)
     if len(train) < 3:
@@ -122,7 +154,7 @@ def _daily_comparison(regional: pd.DataFrame, observed: pd.DataFrame, covariates
     features = _attach_covariates(observed_frame.loc[:, ["date", "region_code"]], covariates)
     calibration = regional.copy(); calibration["date"] = pd.to_datetime(calibration["date"], errors="raise")
     calibration = calibration.loc[calibration["date"] < first_test_date].merge(
-        observed.loc[:, ["date", "region_code", "visitor_index"]].assign(date=lambda x: pd.to_datetime(x["date"], errors="raise")), on=["date", "region_code"], how="inner"
+        observed_panel, on=["date", "region_code"], how="inner"
     )
     calibration["pressure_index"] = pd.to_numeric(calibration["pressure_index"], errors="coerce")
     calibration["visitor_index"] = pd.to_numeric(calibration["visitor_index"], errors="coerce")
@@ -138,7 +170,18 @@ def _daily_comparison(regional: pd.DataFrame, observed: pd.DataFrame, covariates
             merged[f"prediction_{q}"] *= scale
         if merged.empty:
             continue
-        row = {"candidate": name, "test_rows": int(len(merged)), "holdout_year": holdout_year, **_score(merged["visitor_index"], merged["prediction_q50"]), "picp_80": float(((merged["visitor_index"] >= merged["prediction_q10"]) & (merged["visitor_index"] <= merged["prediction_q90"])).mean()), "mean_interval_width": float((merged["prediction_q90"] - merged["prediction_q10"]).mean())}
+        calibration_features = _attach_covariates(calibration.loc[:, ["date", "region_code"]], covariates)
+        calibration_prediction = calibration.loc[:, ["date", "region_code", "visitor_index"]].merge(
+            predict_daily_ridge_forecaster(model, calibration_features), on=["date", "region_code"], how="inner"
+        )
+        calibration_scale = calibration_prediction["region_code"].map(scales).fillna(1.0)
+        calibration_prediction["prediction_q50"] *= calibration_scale
+        merged, radius = apply_relative_split_conformal_interval(
+            merged,
+            calibration_actual=calibration_prediction["visitor_index"],
+            calibration_point=calibration_prediction["prediction_q50"],
+        )
+        row = {"candidate": name, "test_rows": int(len(merged)), "holdout_year": holdout_year, **_score(merged["visitor_index"], merged["prediction_q50"]), "picp_80": float(((merged["visitor_index"] >= merged["prediction_q10"]) & (merged["visitor_index"] <= merged["prediction_q90"])).mean()), "mean_interval_width": float((merged["prediction_q90"] - merged["prediction_q10"]).mean()), "interval_calibration": f"relative_split_conformal_pre_{holdout_year}", "conformal_relative_radius": radius, "calibration_rows": int(len(calibration_prediction))}
         rows.append(row)
     weekday_median = train.copy(); weekday_median["weekday"] = pd.to_datetime(weekday_median["date"]).dt.dayofweek
     test_naive = observed_frame.copy(); test_naive["weekday"] = test_naive["date"].dt.dayofweek
@@ -146,7 +189,7 @@ def _daily_comparison(regional: pd.DataFrame, observed: pd.DataFrame, covariates
     medians = historical.groupby(["region_code", "weekday"])["visitor_index"].median()
     test_naive["prediction"] = [medians.get((row.region_code, row.weekday), historical["visitor_index"].median()) for row in test_naive.itertuples()]
     if not test_naive.empty:
-        rows.append({"candidate": "historical_weekday_median", "test_rows": int(len(test_naive)), "holdout_year": holdout_year, **_score(test_naive["visitor_index"], test_naive["prediction"]), "picp_80": np.nan, "mean_interval_width": np.nan})
+        rows.append({"candidate": "historical_weekday_median", "test_rows": int(len(test_naive)), "holdout_year": holdout_year, **_score(test_naive["visitor_index"], test_naive["prediction"]), "picp_80": np.nan, "mean_interval_width": np.nan, "interval_calibration": "not_applicable", "conformal_relative_radius": np.nan, "calibration_rows": int(len(calibration))})
     comparison = pd.DataFrame(rows)
     return comparison, comparison.empty
 
@@ -200,7 +243,10 @@ def build_question2_outputs(
     comparison, no_independent_observation = _daily_comparison(regional, observed, daily_covariates)
     comparison.to_csv(output / "q2_daily_model_comparison.csv", index=False, encoding="utf-8-sig")
     model_comparison = comparison.loc[comparison["candidate"].isin(["seasonal_calendar_ridge", "dynamic_ridge"])]
-    selected_dynamic = bool(model_comparison.sort_values("mae").iloc[0]["candidate"] == "dynamic_ridge") if not model_comparison.empty else True
+    selected_validation = model_comparison.sort_values("mae").iloc[0] if not model_comparison.empty else None
+    selected_dynamic = bool(selected_validation["candidate"] == "dynamic_ridge") if selected_validation is not None else True
+    conformal_radius = float(selected_validation["conformal_relative_radius"]) if selected_validation is not None and pd.notna(selected_validation.get("conformal_relative_radius")) else np.nan
+    interval_calibration = str(selected_validation["interval_calibration"]) if selected_validation is not None and pd.notna(selected_validation.get("interval_calibration")) else "model_quantile_only_no_calibration_observations"
     train = regional.loc[pd.to_datetime(regional["date"], errors="raise").dt.year < forecast_year].copy()
     train = _attach_covariates(train, daily_covariates)
     daily_model = fit_daily_ridge_forecaster(train, "pressure_index", dynamic=selected_dynamic)
@@ -210,6 +256,13 @@ def build_question2_outputs(
     future_covariates = build_climatological_covariates(daily_covariates, forecast_year) if daily_covariates is not None else None
     future = _attach_covariates(future, future_covariates)
     daily = predict_daily_ridge_forecaster(daily_model, future)
+    if np.isfinite(conformal_radius):
+        lower = daily["prediction_q50"] * max(0.0, 1.0 - conformal_radius)
+        upper = daily["prediction_q50"] * (1.0 + conformal_radius)
+        daily["prediction_q10"] = np.minimum(daily["prediction_q10"], lower)
+        daily["prediction_q90"] = np.maximum(daily["prediction_q90"], upper)
+    daily["interval_calibration"] = interval_calibration
+    daily["conformal_relative_radius"] = conformal_radius
     scales = train.assign(date=pd.to_datetime(train["date"], errors="raise")).sort_values("date").groupby("region_code", as_index=False)["baseline_scale"].last()
     daily = daily.merge(scales, on="region_code", how="left")
     for quantile in ["q10", "q50", "q90"]:
@@ -227,7 +280,7 @@ def build_question2_outputs(
         weather_model = fit_daily_ridge_forecaster(train, "pressure_index", dynamic=True)
         weather_response_model = "dynamic_ridge_sensitivity_only"
     weather_base = predict_daily_ridge_forecaster(weather_model, future).merge(scales, on="region_code", how="left")
-    rainy = scenario_adjust_weather(future, rain_multiplier=3.0)
+    rainy = scenario_adjust_weather(future, rain_add_mm=20.0)
     rain_daily = predict_daily_ridge_forecaster(weather_model, rainy).merge(scales, on="region_code", how="left")
     scenario = daily.loc[:, ["date", "region_code", "visitor_estimate_q50"]].rename(columns={"visitor_estimate_q50": "baseline_estimate"})
     scenario["weather_response_baseline_estimate"] = weather_base["prediction_q50"].to_numpy() * weather_base["baseline_scale"].to_numpy()
@@ -235,8 +288,14 @@ def build_question2_outputs(
     heat = scenario_adjust_weather(future, temperature_shift_c=5.0)
     heat_daily = predict_daily_ridge_forecaster(weather_model, heat).merge(scales, on="region_code", how="left")
     scenario["heat_shock_estimate"] = heat_daily["prediction_q50"].to_numpy() * heat_daily["baseline_scale"].to_numpy()
-    scenario["scenario_label"] = "threefold_rainfall_and_plus5c_weather_shocks"
+    scenario["scenario_label"] = "additive_20mm_rainfall_and_plus5c_weather_shocks"
     scenario.to_csv(output / f"q2_weather_shock_{forecast_year}.csv", index=False, encoding="utf-8-sig")
+    rain_shock_effective_share = float(
+        1.0 - np.isclose(
+            scenario["weather_response_baseline_estimate"],
+            scenario["rain_shock_estimate"],
+        ).mean()
+    )
     build_q2_diagnostic_figures(monthly, daily, output)
     report = {
         "forecast_year": forecast_year,
@@ -244,10 +303,13 @@ def build_question2_outputs(
         "annual_forecast_interval": [annual_forecast["lower"], annual_forecast["upper"]],
         "annual_selected_model": annual_selected_model,
         "daily_selected_model": "dynamic_ridge" if selected_dynamic else "seasonal_calendar_ridge",
+        "daily_interval_calibration": interval_calibration,
+        "daily_conformal_relative_radius": None if not np.isfinite(conformal_radius) else conformal_radius,
         "daily_validation_scope": "raw_attraction_observation_dates_only" if not no_independent_observation else "no_independent_observation_available",
         "daily_validation_covariate_mode": "conditional_on_realized_weather_and_lagged_search" if daily_covariates is not None else "calendar_only",
         "weather_response_model": weather_response_model,
-        "weather_shock_effective": bool(not np.allclose(scenario["weather_response_baseline_estimate"], scenario["rain_shock_estimate"])),
+        "weather_shock_effective": bool(rain_shock_effective_share > 0.0),
+        "rain_shock_effective_share": rain_shock_effective_share,
         "regional_daily_unit": "anchor_constrained_visitor_scale_estimate_not_observed_count",
     }
     (output / "q2_quality_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")

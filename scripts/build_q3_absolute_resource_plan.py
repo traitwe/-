@@ -85,3 +85,13 @@ sensitivity = daily.groupby(["region_code", "demand_scenario", "forecast_quantil
 )
 sensitivity["interpretation"] = "low_central_stress_parameter_and_forecast_sensitivity"
 sensitivity.to_csv(output / "q3_absolute_resource_sensitivity_2026.csv", index=False, encoding="utf-8-sig")
+
+# Capacity-relaxation diagnostic: transparent counterfactual, not an asserted facility inventory.
+bdh_stress = daily.loc[(daily["region_code"] == "BDH") & (daily["demand_scenario"] == "stress")].copy()
+peak = bdh_stress.loc[bdh_stress["unserved_spaces"].idxmax()]
+slack_rows = []
+for added_capacity in (0, 500, 1000):
+    chosen, _ = optimize_absolute_resources(int(peak["peak_spaces_required"]), int(peak["permanent_capacity_available"]), added_capacity, int(peak["recommended_shuttle_vehicles"]), int(peak["recommended_total_staff_shifts"]), 4.0)
+    physical_shortage = max(int(peak["peak_spaces_required"]) - int(peak["permanent_capacity_available"]) - added_capacity, 0)
+    slack_rows.append({"region_code": "BDH", "demand_scenario": "stress", "reference_date": peak["date"], "added_temporary_capacity_scenario": added_capacity, "peak_spaces_required": int(peak["peak_spaces_required"]), "remaining_unserved_spaces_after_full_activation": physical_shortage, "shortage_reduction_vs_no_added_capacity": int(peak["unserved_spaces"]) - physical_shortage, "unconstrained_optimizer_objective": chosen["objective"], "interpretation": "physical_capacity_relaxation_counterfactual_not_verified_supply_or_selected_plan"})
+pd.DataFrame(slack_rows).to_csv(output / "q3_bdh_temporary_capacity_relaxation.csv", index=False, encoding="utf-8-sig")

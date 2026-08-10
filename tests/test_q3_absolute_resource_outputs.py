@@ -8,7 +8,7 @@ def test_absolute_resource_builder_keeps_scope_and_marks_planning_values():
         {
             "date": ["2026-07-01", "2026-07-02"],
             "region_code": ["SHG", "SHG"],
-            "visitor_estimate_q50": [10_000, 40_000],
+            "visitor_estimate_q50": [10_000, 100_000],
         }
     )
     scenarios = pd.DataFrame(
@@ -38,9 +38,16 @@ def test_absolute_resource_builder_keeps_scope_and_marks_planning_values():
 
     assert set(result["data_basis"]) == {"derived_planning_value"}
     assert set(result["parking_capacity_basis"]) == {"verified_node"}
-    assert set(result["capacity_status"]) == {"permanent_capacity_sufficient", "temporary_capacity_required"}
+    assert set(result["capacity_status"]) == {"permanent_capacity_sufficient", "parking_overflow_unserved"}
     assert result["recommended_shuttle_vehicles"].ge(1).all()
     assert result["recommended_total_staff_shifts"].ge(1).all()
+    overflow = result.loc[result["unserved_spaces"] > 0]
+    assert not overflow.empty
+    assert overflow["parking_transfer_vehicle_demand"].eq(overflow["unserved_spaces"]).all()
+    assert overflow["parking_transfer_visitor_demand"].eq(
+        (overflow["unserved_spaces"] * 3.0).astype(int)
+    ).all()
+    assert set(overflow["parking_management_action"]) == {"outer_park_and_ride_or_timed_reservation"}
     assert not result.astype(str).apply(lambda column: column.str.contains("observed_actual")).any().any()
 
 

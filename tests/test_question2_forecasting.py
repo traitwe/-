@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from src.models.question2_forecasting import (
+    DailyRidgeForecaster,
     allocate_monthly_total,
     annual_rolling_origin_splits,
     build_daily_calendar_features,
@@ -15,7 +16,7 @@ from src.models.question2_forecasting import (
     predict_daily_ridge_forecaster,
     scenario_adjust_weather,
 )
-from src.analysis.q2_forecast_outputs import _daily_comparison, build_climatological_covariates, build_external_anchor_validation, build_q2_diagnostic_figures, build_question2_outputs
+from src.analysis.q2_forecast_outputs import _daily_comparison, apply_relative_split_conformal_interval, build_climatological_covariates, build_external_anchor_validation, build_q2_diagnostic_figures, build_question2_outputs
 
 
 def test_annual_rolling_origin_splits_keep_all_training_years_before_the_target():
@@ -87,6 +88,24 @@ def test_daily_forecaster_uses_a_positive_training_floor_for_nonnegative_series(
     assert predict_daily_ridge_forecaster(model, future)["prediction_q50"].iloc[0] > 0
 
 
+def test_prediction_floor_does_not_collapse_the_entire_interval_to_one_value():
+    model = DailyRidgeForecaster(
+        feature_names=("intercept", "is_summer", "annual_sin", "annual_cos", "weekday_1", "weekday_2", "weekday_3", "weekday_4", "weekday_5", "weekday_6"),
+        feature_means=(0.0,) * 10,
+        feature_scales=(1.0,) * 10,
+        coefficients=(-0.7,) + (0.0,) * 9,
+        residual_std=1.5,
+        region_levels=("SHG",),
+        dynamic=False,
+        prediction_floor=2.0,
+    )
+
+    prediction = predict_daily_ridge_forecaster(model, pd.DataFrame({"date": ["2026-01-05"], "region_code": ["SHG"]}))
+
+    assert prediction.loc[0, "prediction_q10"] < prediction.loc[0, "prediction_q90"]
+    assert prediction.loc[0, "prediction_q10"] <= prediction.loc[0, "prediction_q50"] <= prediction.loc[0, "prediction_q90"]
+
+
 def test_daily_ridge_forecast_orders_its_quantiles():
     source = pd.DataFrame({
         "date": pd.date_range("2025-07-01", periods=12, freq="D"),
@@ -123,16 +142,42 @@ def test_weather_scenario_only_changes_weather_input_columns():
     assert result.loc[0, "search_lag_1"] == 10.0
 
 
+def test_weather_scenario_supports_additive_rainfall_shock():
+    source = pd.DataFrame({"date": ["2026-07-01"], "rain_mm": [0.0]})
+    result = scenario_adjust_weather(source, rain_add_mm=20.0)
+    assert result.loc[0, "rain_mm"] == 20.0
+
+
+def test_relative_split_conformal_interval_expands_existing_quantiles_by_calibrated_relative_error():
+    prediction = pd.DataFrame({"prediction_q10": [9.0], "prediction_q50": [10.0], "prediction_q90": [11.0]})
+
+    adjusted, radius = apply_relative_split_conformal_interval(
+        prediction,
+        calibration_actual=pd.Series([5.0, 15.0]),
+        calibration_point=pd.Series([10.0, 10.0]),
+        coverage=0.8,
+    )
+
+    assert radius == pytest.approx(0.5)
+    assert adjusted.loc[0, "prediction_q10"] == pytest.approx(5.0)
+    assert adjusted.loc[0, "prediction_q90"] == pytest.approx(15.0)
+
+
 def test_daily_comparison_uses_latest_year_with_sufficient_observations_and_reports_interval_metrics():
     dates = pd.date_range("2023-01-01", "2025-12-31", freq="D")
     regional = pd.DataFrame({"date": dates, "region_code": "SHG", "pressure_index": np.linspace(1.0, 2.0, len(dates)), "baseline_scale": 100.0})
-    observed_dates = list(pd.date_range("2024-01-01", periods=60, freq="D")) + list(pd.date_range("2025-01-01", periods=14, freq="D"))
+    observed_dates = (
+        list(pd.date_range("2023-01-01", periods=60, freq="D"))
+        + list(pd.date_range("2024-01-01", periods=60, freq="D"))
+        + list(pd.date_range("2025-01-01", periods=14, freq="D"))
+    )
     observed = pd.DataFrame({"date": observed_dates, "region_code": "SHG", "visitor_index": [0.5] * len(observed_dates)})
     result, unavailable = _daily_comparison(regional, observed)
     assert not unavailable
     assert result["holdout_year"].eq(2024).all()
     assert "historical_weekday_median" in set(result["candidate"])
-    assert {"picp_80", "mean_interval_width"}.issubset(result.columns)
+    assert {"picp_80", "mean_interval_width", "interval_calibration", "conformal_relative_radius"}.issubset(result.columns)
+    assert result.loc[result["candidate"].eq("dynamic_ridge"), "interval_calibration"].iloc[0] == "relative_split_conformal_pre_2024"
 
 
 def test_climatological_covariates_use_only_history_before_forecast_year():
@@ -171,7 +216,7 @@ def test_q2_output_builder_writes_constrained_city_and_three_region_forecasts(tm
         "pressure_index": np.tile(np.linspace(2.0, 8.0, len(dates)), 3),
         "baseline_scale": 100.0,
     })
-    observed = regional.loc[regional["date"].dt.year.eq(2025), ["date", "region_code", "pressure_index"]].rename(columns={"pressure_index": "visitor_index"})
+    observed = regional.loc[regional["date"].dt.year.isin([2023, 2025]), ["date", "region_code", "pressure_index"]].rename(columns={"pressure_index": "visitor_index"})
     observed = pd.concat([observed, pd.DataFrame({"date": ["2021-01-01"], "region_code": ["OUTSIDE"], "visitor_index": [99.0]})], ignore_index=True)
     regional["date"] = regional["date"].dt.strftime("%Y-%m-%d")
     covariates = pd.DataFrame({"date": dates.strftime("%Y-%m-%d"), "rain_mm": 1.0, "temperature_c": 25.0, "search_lag_1": 10.0})
@@ -185,11 +230,13 @@ def test_q2_output_builder_writes_constrained_city_and_three_region_forecasts(tm
     assert set(daily["region_code"]) == {"BDH", "HGA", "SHG"}
     assert pd.to_datetime(daily["date"]).dt.year.eq(2026).all()
     assert daily["estimate_label"].eq("anchor_constrained_daily_visitor_forecast").all()
+    assert daily["interval_calibration"].eq("relative_split_conformal_pre_2025").all()
     assert report["daily_validation_scope"] == "raw_attraction_observation_dates_only"
     assert (tmp_path / "q2_annual_model_comparison.csv").exists()
     assert report["annual_selected_model"] in {"weighted_log_trend", "last_year_naive", "recent_median_growth"}
     assert report["daily_validation_covariate_mode"] == "conditional_on_realized_weather_and_lagged_search"
     assert report["weather_response_model"] in {"dynamic_ridge_sensitivity_only", "selected_daily_model"}
+    assert 0.0 <= report["rain_shock_effective_share"] <= 1.0
 
 
 def test_q2_diagnostic_figures_are_created_from_forecast_tables(tmp_path):

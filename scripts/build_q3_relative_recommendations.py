@@ -8,7 +8,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.models.question3_relative_tiers import beidaihe_summer_trigger, classify_relative_pressure
-from src.models.question3_relative_optimizer import optimize_relative_tiers
+from src.models.question3_relative_optimizer import independent_static_tiers, optimize_relative_tiers
 
 forecast = pd.read_csv(ROOT / "outputs/question2_analysis/q2_region_daily_forecast_2026.csv", encoding="utf-8-sig")
 calendar = pd.read_csv(ROOT / "data/clean/calendar_2015_2026.csv", encoding="utf-8-sig")
@@ -21,17 +21,33 @@ actions = {"normal": "maintain_normal_staffing__15min_summer_shuttle_baseline_if
 daily["recommended_action"] = daily["base_service_tier"].map(actions)
 budget_by_tier = {"normal": 1.2, "surge": 3.0, "emergency": 5.5}
 anchor_support = {"BDH": {"shuttle": 0.20}, "HGA": {"parking_guidance": 0.30}, "SHG": {"parking_guidance": 0.20}}
-optimized = daily.apply(lambda row: optimize_relative_tiers(float(row["relative_pressure"]), risk_penalty=4.0, budget=budget_by_tier[row["base_service_tier"]], anchor_support=anchor_support[row["region_code"]])[0], axis=1).apply(pd.Series)
+
+
+def minimum_tiers_for_service_tier(service_tier: str) -> dict[str, int]:
+    """Emergency coordination requires at least a basic shuttle deployment."""
+    return {"shuttle": 1} if service_tier == "emergency" else {}
+
+
+optimized = daily.apply(lambda row: optimize_relative_tiers(float(row["relative_pressure"]), risk_penalty=4.0, budget=budget_by_tier[row["base_service_tier"]], anchor_support=anchor_support[row["region_code"]], minimum_tiers=minimum_tiers_for_service_tier(row["base_service_tier"]))[0], axis=1).apply(pd.Series)
 daily = pd.concat([daily, optimized.drop(columns=["target_tier"], errors="ignore")], axis=1)
 daily["output_status"] = "relative_service_intensity_not_exact_resource_count"
 output = ROOT / "outputs/question3_analysis"; output.mkdir(parents=True, exist_ok=True)
 daily.to_csv(output / "q3_daily_relative_service_tiers_2026.csv", index=False, encoding="utf-8-sig")
 summary = daily.groupby(["region_code", "base_service_tier"], as_index=False).size().rename(columns={"size": "days"})
 summary.to_csv(output / "q3_service_tier_summary_2026.csv", index=False, encoding="utf-8-sig")
-daily.groupby(["region_code", "base_service_tier"], as_index=False)[["staff_tier", "entry_tier", "parking_guidance_tier", "shuttle_tier", "relative_cost", "standardized_service_risk"]].mean().to_csv(output / "q3_multiresource_optimization_summary_2026.csv", index=False, encoding="utf-8-sig")
+tier_summary = daily.groupby(["region_code", "base_service_tier"], as_index=False)[["staff_tier", "entry_tier", "parking_guidance_tier", "shuttle_tier", "relative_cost", "standardized_service_risk"]].mean()
+tier_summary = tier_summary.rename(columns={"staff_tier": "staff_tier_daily_mean", "entry_tier": "entry_tier_daily_mean", "parking_guidance_tier": "parking_guidance_tier_daily_mean", "shuttle_tier": "shuttle_tier_daily_mean", "relative_cost": "relative_cost_daily_mean", "standardized_service_risk": "standardized_service_risk_daily_mean"})
+tier_summary.to_csv(output / "q3_multiresource_optimization_summary_2026.csv", index=False, encoding="utf-8-sig")
 
 tier_columns = ["staff_tier", "entry_tier", "parking_guidance_tier", "shuttle_tier"]
-static = daily.groupby("region_code", as_index=False)[tier_columns].max()
+historical = pd.read_csv(ROOT / "data/model_input/daily_region_visitor_scale_censored_likelihood_2023_2025.csv", encoding="utf-8-sig")
+historical = historical.loc[pd.to_numeric(historical["visitor_estimate_baseline"], errors="coerce").gt(0), ["region_code", "visitor_estimate_baseline"]]
+historical_peak = historical.groupby("region_code")["visitor_estimate_baseline"].agg(["median", "max"])
+historical_peak["historical_peak_relative_pressure"] = historical_peak["max"] / historical_peak["median"]
+static = pd.DataFrame([
+    {"region_code": region, **independent_static_tiers(float(row["historical_peak_relative_pressure"]), safety_factor=1.2), "historical_peak_relative_pressure": float(row["historical_peak_relative_pressure"]), "static_safety_factor": 1.2, "static_baseline_source": "2023_2025_positive_historical_peak_times_safety_factor"}
+    for region, row in historical_peak.iterrows()
+])
 cost_weight = {"staff_tier": 1.0, "entry_tier": 0.8, "parking_guidance_tier": 0.6, "shuttle_tier": 1.2}
 static["static_daily_relative_cost"] = sum(static[column] * weight for column, weight in cost_weight.items())
 dynamic = daily.groupby("region_code", as_index=False).agg(dynamic_daily_relative_cost=("relative_cost", "mean"), dynamic_mean_service_risk=("standardized_service_risk", "mean"))
@@ -47,7 +63,7 @@ bdh.loc[:, ["date", "relative_pressure", "base_service_tier", "staff_tier", "ent
 
 pareto_rows = []
 for penalty in [1.0, 2.0, 4.0, 6.0, 8.0]:
-    scenario = daily.apply(lambda row: optimize_relative_tiers(float(row["relative_pressure"]), risk_penalty=penalty, budget=budget_by_tier[row["base_service_tier"]], anchor_support=anchor_support[row["region_code"]])[0], axis=1).apply(pd.Series)
+    scenario = daily.apply(lambda row: optimize_relative_tiers(float(row["relative_pressure"]), risk_penalty=penalty, budget=budget_by_tier[row["base_service_tier"]], anchor_support=anchor_support[row["region_code"]], minimum_tiers=minimum_tiers_for_service_tier(row["base_service_tier"]))[0], axis=1).apply(pd.Series)
     pareto_rows.append({"risk_penalty": penalty, "mean_relative_cost": scenario["relative_cost"].mean(), "mean_standardized_service_risk": scenario["standardized_service_risk"].mean()})
 pareto = pd.DataFrame(pareto_rows).sort_values("mean_relative_cost")
 pareto["is_nondominated"] = ~pareto.apply(lambda row: ((pareto["mean_relative_cost"] <= row["mean_relative_cost"]) & (pareto["mean_standardized_service_risk"] <= row["mean_standardized_service_risk"]) & ((pareto["mean_relative_cost"] < row["mean_relative_cost"]) | (pareto["mean_standardized_service_risk"] < row["mean_standardized_service_risk"]))).any(), axis=1)

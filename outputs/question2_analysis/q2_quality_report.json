@@ -7,9 +7,12 @@
   ],
   "annual_selected_model": "recent_median_growth",
   "daily_selected_model": "dynamic_ridge",
+  "daily_interval_calibration": "relative_split_conformal_pre_2024",
+  "daily_conformal_relative_radius": 0.8513219196686409,
   "daily_validation_scope": "raw_attraction_observation_dates_only",
   "daily_validation_covariate_mode": "conditional_on_realized_weather_and_lagged_search",
   "weather_response_model": "selected_daily_model",
   "weather_shock_effective": true,
+  "rain_shock_effective_share": 0.7461187214611873,
   "regional_daily_unit": "anchor_constrained_visitor_scale_estimate_not_observed_count"
 }
