@@ -1,0 +1,38 @@
+{
+  "panel_rows": 6678,
+  "observed_rows": 896,
+  "censored_rows": 5782,
+  "anchor_rows": 68,
+  "panel_date_start": "2021-12-22",
+  "panel_date_end": "2025-01-25",
+  "panel_region_codes": [
+    "BDH",
+    "HGA",
+    "SHG",
+    "其他_昌黎"
+  ],
+  "anchor_region_codes": [
+    "ARA",
+    "BDH",
+    "BND",
+    "CITY",
+    "HGA",
+    "SHG",
+    "SHG_SCENIC"
+  ],
+  "anchor_source_datasets": [
+    "aranya_beidaihe_new_district_summer_flow_anchors_2023_2025.csv",
+    "beidaihe_tourism_anchors_revised.csv",
+    "haigang_aranya_tourism_anchors.csv",
+    "qinhuangdao_public_visitor_flow_anchors_2023_2025.csv",
+    "qinhuangdao_summer_regional_flow_anchors_2023_2025.csv",
+    "shanhaiguan_tourism_anchors.csv"
+  ],
+  "anchor_scope_decisions": {
+    "direct_region_scale": 8,
+    "lower_bound_only": 6,
+    "outside_model_window": 6,
+    "outside_target_regions": 34,
+    "subarea_or_scenic_scope": 14
+  }
+}

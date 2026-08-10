@@ -1,0 +1,8 @@
+﻿period_start,period_end,region_name,visitor_count_10k_persons,tourism_income_100m_cny,value_qualifier,frequency,data_status,source_url,source_note
+2023-01-01,2023-12-31,Shanhaiguan_Scenic_Area,,,,annual,missing,,No directly verifiable annual count was found in the sources searched on 2026-08-09
+2023-01-01,2023-08-31,Shanhaiguan_Tourism_Area,699.11,90.88,exact,year_to_date,partial,https://hebei.ifeng.com/c/8T1b1Ei4CFd,Cumulative visitors and tourism total income through end-August 2023; it cannot replace the missing annual observation.
+2024-01-01,2024-12-31,Shanhaiguan_Scenic_Area,828.65,2.5,exact,annual,verified,https://www.zgcounty.com/wap/news/66028.html,2024 annual Shanhaiguan scenic area visitors and ticket income stated in the 2025 district government work report
+2025-01-01,2025-12-31,Shanhaiguan_Scenic_Area,,,,annual,missing,,No directly verifiable annual count was found in the sources searched on 2026-08-09
+2024-05-01,2024-05-05,Shanhaiguan_District_All_Scenic_Areas,47.52,0.129566,exact,holiday_total,verified,https://shg.qhdcaw.gov.cn/portal/article/index/id/1/cid/54.html,2024 May Day holiday cumulative visitors and ticket income across Shanhaiguan District scenic areas
+2025-05-01,2025-05-05,Shanhaiguan_Scenic_Area,51.14,0.142039,exact,holiday_total,verified,https://lywgj.qhd.gov.cn/home/details?code=OTg%CE%B3&id=10940&pcode=NzU%CE%B3,2025 May Day holiday cumulative visitors and tourism income; source separately reports state-owned scenic areas
+2025-01-01,2025-08-31,Shanhaiguan_Scenic_Area,734.51,2.447994,exact,year_to_date,verified,https://qhd.wenming.cn/sy/jq_sy/202509/t20250911_9023197.html,Cumulative visitors and ticket income through end-August 2025; do not treat as annual total

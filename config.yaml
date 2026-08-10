@@ -1,0 +1,11 @@
+project_name: MCM_2026
+random_seed: 2026
+paths:
+  raw_data: data/raw
+  processed_data: data/processed
+  figures: outputs/figures
+  tables: outputs/tables
+  results: outputs/results
+model:
+  name: placeholder
+  parameters: {}

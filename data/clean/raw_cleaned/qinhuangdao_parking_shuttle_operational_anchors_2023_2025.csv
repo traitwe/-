@@ -1,0 +1,9 @@
+﻿period_start,period_end,region_name,facility_or_scope,parameter_name,numeric_value,unit,value_qualifier,frequency,data_status,source_url,source_note
+2024-07-05,2024-08-25,Beidaihe_District,Tourism_bus_line_2,daytime_headway,15.0,minutes,exact,scheduled_service,verified,https://he.people.com.cn/n2/2024/0705/c192235-40902683.html,旅游公交2路白天发车间隔15分钟，运行时间07:30—19:30；这是班次计划，不是实际客流或满载率。
+2024-07-05,2024-08-25,Beidaihe_District,Tourism_bus_line_2,service_hours,12.0,hours,exact,scheduled_service,verified,https://he.people.com.cn/n2/2024/0705/c192235-40902683.html,旅游公交2路服务时段07:30—19:30；车辆数、座位数、实际班次和客流未公开。
+2025-02-18,2025-12-31,Beidaihe_New_District,Yutian_Town_Parking_Lot,parking_spaces,1272.0,spaces,exact,capacity_not_operations,verified,https://ggzyfw.beijing.gov.cn/xtgghbzbgg/20250218/4975948.html,渔田小镇停车场特许经营项目招标文件给出1272个停车位；属于设计/项目容量，不是暑期实际进出场记录。
+2025-07-01,2025-08-31,Beidaihe_New_District,Aranya_and_Yutian_Qilihai,shuttle_actual_trips,,,missing,summer_daily,missing,https://lywgj.qhd.gov.cn/,公开资料确认存在交通接驳服务，但未找到车辆数、实际班次、载客量、满载率或排队时长；需向运营方索取调度日志。
+2025-07-01,2025-08-31,Beidaihe_District_Core,tourism_parking_and_shuttle_system,parking_entries_exits_and_occupancy,,,missing,summer_hourly,missing,https://www.beidaihe.gov.cn/,未找到核心景区停车场逐小时进出、占用率、溢出停车和接驳换乘量公开记录。
+2024-07-01,2024-08-31,Beidaihe_District,Beidaihe_to_Shanhaiguan_tourism_direct_bus,route_stops,18.0,stops,exact,summer_route,verified,https://www.visitbeijing.com.cn/article/4Iuusx8PnQu,报道列出北戴河至山海关旅游专线直通车站点，含鸽子窝公园出口、鸽子窝公园和鸽子窝停车场；未披露实际班次和客流。
+2024-07-01,2024-08-31,Beidaihe_District,Beidaihe_to_Shanhaiguan_tourism_direct_bus,operational_passenger_count,,,missing,summer_route,missing,https://www.visitbeijing.com.cn/article/4Iuusx8PnQu,线路和站点可核验，但公开报道未给出实际发车趟次、车辆数、载客量或满载率。
+2025-05-01,2025-05-05,Beidaihe_New_District,Aranya_and_high_end_resorts,shuttle_service,,,reported,holiday_service,partial,https://he.people.com.cn/n2/2025/0507/c192235-41219910.html,报道确认新区景区之间存在交通接驳协调，但未公开车辆、班次和客流数字。

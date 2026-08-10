@@ -1,0 +1,261 @@
+\documentclass[12pt]{ctexart}
+
+% ====== 基本设置 ======
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs,longtable,tabularx,array}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
+}
+
+\pagestyle{plain}
+\pagenumbering{arabic}
+
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+
+\newcommand{\ph}[1]{\textit{【#1】}}
+
+\begin{document}
+
+\section{本文使用AI工具名称及版本对应}
+
+\begin{table}[!htbp]
+    \caption{本文使用AI工具名称及版本对应}\label{tab:001} \centering
+    \begin{tabular}{ccccc}
+        \toprule[1.5pt]
+    \textbf{工具名称} & \textbf{版本号} \\
+    \midrule[1pt]
+    Deepseek & Deepseek-R1-0528 \\
+    ChatGPT & GPT-5 \\
+    Claude & 4.0 Sonnet \\
+    豆包 & 1.6 \\
+    文心一言 & 4.5 Turbo \\
+    Kimi & K2 \\
+    \bottomrule[0.5pt]
+    \end{tabular}
+\end{table}
+\ph{注：用了多少个AI就在这里标注多少个，下面的附录中每个AI单作一章。}
+
+\newpage
+
+\section{GPT-5 使用详情}
+\subsection{具体使用目的及环节}
+
+\subsubsection{文本润色}
+\paragraph{使用环节一}
+章节：\ph{模型评价与推广——模型的优点} \\
+目的：\ph{用于文本的润色，使其按照要求呈现形式更加xx化}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此概述润色目标与改写侧重点}
+
+\subsubsection{代码辅助}
+\paragraph{使用环节一}
+章节：\ph{模型建立与求解——问题一模型建立与求解} \\
+目的：\ph{提供了问题一中xx部分的代码，采纳了xx部分用于辅助解题}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此描述辅助编码内容与边界}
+
+\subsubsection{图表生成}
+\paragraph{使用环节一}
+章节：\ph{模型建立与求解——问题一模型建立与求解} \\
+目的：\ph{提供了问题一中xx部分的图/表，用于完成xx的可视化/分析}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此描述图表用途与产出格式}
+
+\subsubsection{思路辅助}
+\paragraph{使用环节一}
+章节：\ph{模型建立与求解——问题一模型建立与求解} \\
+目的：\ph{提供了问题一中xx部分的思路，用于辅助问题一中的数据处理/模型建立/xxx}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此描述思路启发与采用范围}
+
+\subsection{关键交互记录及采纳情况}
+\subsubsection{交互记录一}
+\textbf{交互场景}：\ph{见 2.1.1} \\[4pt]
+\textbf{交互记录截图}：\ph{插入截图}
+
+\paragraph{提示词}
+\begin{flushleft}
+\ph{在此粘贴提示词文本}
+\end{flushleft}
+
+\paragraph{回复内容}
+\begin{flushleft}
+\ph{在此粘贴模型回复要点或全文}
+\end{flushleft}
+
+\paragraph{采纳部分}
+\begin{itemize}[leftmargin=1.5em]
+  \item \ph{列出被直接采纳的段落/算法/图表}
+\end{itemize}
+
+\paragraph{修改部分}
+\begin{itemize}[leftmargin=1.5em]
+  \item \ph{列出在采纳基础上的修订点及理由}
+\end{itemize}
+
+\paragraph{最终呈现}
+\begin{flushleft}
+\ph{说明最终落地内容、位置与版本（例如章节、页码、图号等）}
+\end{flushleft}
+
+\newpage
+
+\section{Deepseek-R1-0528 使用详情}
+\subsection{具体使用目的及环节}
+
+\subsubsection{文本润色}
+\paragraph{使用环节一}
+章节：\ph{模型评价与推广——模型的优点} \\
+目的：\ph{用于文本的润色，使其按照要求呈现形式更加xx化}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此概述润色目标与改写侧重点}
+
+\subsubsection{代码辅助}
+\paragraph{使用环节一}
+章节：\ph{模型建立与求解——问题一模型建立与求解} \\
+目的：\ph{提供了问题一中xx部分的代码，采纳了xx部分用于辅助解题}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此描述辅助编码内容与边界}
+
+\subsubsection{图表生成}
+\paragraph{使用环节一}
+章节：\ph{模型建立与求解——问题一模型建立与求解} \\
+目的：\ph{提供了问题一中xx部分的图/表，用于完成xx的可视化/分析}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此描述图表用途与产出格式}
+
+\subsubsection{思路辅助}
+\paragraph{使用环节一}
+章节：\ph{模型建立与求解——问题一模型建立与求解} \\
+目的：\ph{提供了问题一中xx部分的思路，用于辅助问题一中的数据处理/模型建立/xxx}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此描述思路启发与采用范围}
+
+\subsection{关键交互记录及采纳情况}
+\subsubsection{交互记录一}
+\textbf{交互场景}：\ph{见 3.1.1} \\[4pt]
+\textbf{交互记录截图}：\ph{插入截图}
+
+\paragraph{提示词}
+\begin{flushleft}
+\ph{在此粘贴提示词文本}
+\end{flushleft}
+
+\paragraph{回复内容}
+\begin{flushleft}
+\ph{在此粘贴模型回复要点或全文}
+\end{flushleft}
+
+\paragraph{采纳部分}
+\begin{itemize}[leftmargin=1.5em]
+  \item \ph{列出被直接采纳的段落/算法/图表}
+\end{itemize}
+
+\paragraph{修改部分}
+\begin{itemize}[leftmargin=1.5em]
+  \item \ph{列出在采纳基础上的修订点及理由}
+\end{itemize}
+
+\paragraph{最终呈现}
+\begin{flushleft}
+\ph{说明最终落地内容、位置与版本}
+\end{flushleft}
+
+\newpage
+
+\section{Claude-4.0 Sonnet 使用详情}
+\subsection{具体使用目的及环节}
+
+\subsubsection{文本润色}
+\paragraph{使用环节一}
+章节：\ph{模型评价与推广——模型的优点} \\
+目的：\ph{用于文本的润色，使其按照要求呈现形式更加xx化}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此概述润色目标与改写侧重点}
+
+\subsubsection{代码辅助}
+\paragraph{使用环节一}
+章节：\ph{模型建立与求解——问题一模型建立与求解} \\
+目的：\ph{提供了问题一中xx部分的代码，采纳了xx部分用于辅助解题}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此描述辅助编码内容与边界}
+
+\subsubsection{图表生成}
+\paragraph{使用环节一}
+章节：\ph{模型建立与求解——问题一模型建立与求解} \\
+目的：\ph{提供了问题一中xx部分的图/表，用于完成xx的可视化/分析}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此描述图表用途与产出格式}
+
+\subsubsection{思路辅助}
+\paragraph{使用环节一}
+章节：\ph{模型建立与求解——问题一模型建立与求解} \\
+目的：\ph{提供了问题一中xx部分的思路，用于辅助问题一中的数据处理/模型建立/xxx}
+
+\paragraph{使用环节二}
+章节：\ph{在此填写章节} \\
+目的：\ph{在此描述思路启发与采用范围}
+
+\subsection{关键交互记录及采纳情况}
+\subsubsection{交互记录一}
+\textbf{交互场景}：\ph{见 4.1.1} \\[4pt]
+\textbf{交互记录截图}：\ph{插入截图}
+
+\paragraph{提示词}
+\begin{flushleft}
+\ph{在此粘贴提示词文本}
+\end{flushleft}
+
+\paragraph{回复内容}
+\begin{flushleft}
+\ph{在此粘贴模型回复要点或全文}
+\end{flushleft}
+
+\paragraph{采纳部分}
+\begin{itemize}[leftmargin=1.5em]
+  \item \ph{列出被直接采纳的段落/算法/图表}
+\end{itemize}
+
+\paragraph{修改部分}
+\begin{itemize}[leftmargin=1.5em]
+  \item \ph{列出在采纳基础上的修订点及理由}
+\end{itemize}
+
+\paragraph{最终呈现}
+\begin{flushleft}
+\ph{说明最终落地内容、位置与版本}
+\end{flushleft}
+
+\end{document}

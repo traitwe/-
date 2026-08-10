@@ -1,0 +1,10 @@
+﻿year,visitor_count_10k_persons,tourism_value_100m_cny,visitor_scope,tourism_value_metric,frequency,data_status,source_url,source_note
+2017,5223.5,658.29,domestic_visitors,total_tourism_revenue,annual,verified,https://web.xiaze.org/tjgb/201804/42618-2.html,2017 Qinhuangdao national economic and social development statistical bulletin
+2018,6251.24,824.87,domestic_and_international_visitors,total_tourism_revenue,annual,verified,https://www.gcs66.com/document_detail/7287.html,2018 Qinhuangdao national economic and social development statistical bulletin
+2019,7262.33,,domestic_and_international_visitors,,annual,partial,https://www.gcs66.com/document_detail/1897.html,Visitor count verified; tourism value is missing because no directly verifiable amount was found
+2020,2680.11,268.32,domestic_visitors,domestic_tourism_revenue,annual,verified,https://zgrkk.com/reports/1491.html,2020 Qinhuangdao national economic and social development statistical bulletin
+2021,3122.93,330.05,all_visitors,tourism_revenue,annual,verified,https://tjgb.hongheiku.com/djs/25312.html,2021 Qinhuangdao national economic and social development statistical bulletin
+2022,1885.78,163.37,domestic_visitors,domestic_tourism_revenue,annual,verified,https://tjgb.hongheiku.com/djs/42229.html,2022 Qinhuangdao national economic and social development statistical bulletin
+2023,8025.52,1098.85,all_visitors,tourism_revenue,annual,verified,https://www.tjcn.org/tjgb/03hb/37694.html,2023 Qinhuangdao national economic and social development statistical bulletin
+2024,8945.72,1211.27,domestic_visitors,tourist_total_spending,annual,verified,https://www.tcc.org.cn/newsinfo/8530501.html,"2024 value is tourist total spending, not the earlier tourism revenue label; retain the metric column when comparing across years"
+2025,,,,,annual,missing,,No city-level annual absolute visitor count and tourism value were verified in the sources searched on 2026-08-09

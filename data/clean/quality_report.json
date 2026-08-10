@@ -1,0 +1,836 @@
+{
+  "cleaning_policy": "no imputation; raw sources remain unchanged",
+  "tables": {
+    "daily_search_heat_2016_2026.csv": {
+      "row_count": 15492,
+      "column_count": 7,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "date": 0,
+        "keyword": 0,
+        "search_index": 0,
+        "pc_index": 0,
+        "mobile_index": 0,
+        "is_weekend": 0,
+        "source_label": 0
+      },
+      "duplicate_key_count": 0,
+      "date_min": "2016-01-01",
+      "date_max": "2026-08-08",
+      "invalid_date_count": 0,
+      "date_unique_count": 3873,
+      "missing_calendar_days_between_dates": 0
+    },
+    "daily_attraction_flow_index_2021_2025.csv": {
+      "row_count": 896,
+      "column_count": 15,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "attraction_name": 0,
+        "region_code": 0,
+        "district": 0,
+        "road_congestion_index": 0,
+        "congestion_vs_normal": 6,
+        "visitor_index": 0,
+        "visitor_vs_normal": 11,
+        "date": 0,
+        "daily_rank": 0,
+        "tags": 0,
+        "longitude": 0,
+        "latitude": 0,
+        "congestion_anomaly": 0,
+        "data_type": 0,
+        "source_label": 0
+      },
+      "duplicate_key_count": 0,
+      "date_min": "2021-12-22",
+      "date_max": "2025-01-25",
+      "invalid_date_count": 0,
+      "date_unique_count": 371,
+      "missing_calendar_days_between_dates": 760
+    },
+    "daily_weather_2015_2025.csv": {
+      "row_count": 4018,
+      "column_count": 30,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "date": 0,
+        "日均气温_℃": 0,
+        "日最高气温_℃": 0,
+        "日最低气温_℃": 0,
+        "日最高体感温度_℃": 0,
+        "日均体感温度_℃": 0,
+        "日均相对湿度_pct": 0,
+        "日均露点_℃": 0,
+        "日均云量_pct": 0,
+        "日均风速_kmh": 0,
+        "日最大风速_kmh": 0,
+        "日降水量_mm": 0,
+        "全日降水小时数_h": 0,
+        "日最低能见度_m": 2273,
+        "日均能见度_m": 2273,
+        "雾时数_h": 2273,
+        "轻雾时数_h": 2273,
+        "日均PM25_ugm3": 2772,
+        "日均PM10_ugm3": 2772,
+        "白天降水量_mm": 0,
+        "白天降水小时数_h": 0,
+        "白天均能见度_m": 2273,
+        "白天雾时数_h": 2273,
+        "海表温度_均值_℃": 2898,
+        "海表温度_最高_℃": 2897,
+        "最大浪高_m": 2884,
+        "source_label": 0
+      },
+      "duplicate_key_count": 0,
+      "date_min": "2015-01-01",
+      "date_max": "2025-12-31",
+      "invalid_date_count": 0,
+      "date_unique_count": 4018,
+      "missing_calendar_days_between_dates": 0
+    },
+    "calendar_2015_2026.csv": {
+      "row_count": 4383,
+      "column_count": 15,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "date": 0,
+        "星期": 0,
+        "是否周末": 0,
+        "是否法定放假": 0,
+        "是否调休上班日": 0,
+        "节假日名称": 3978,
+        "是否休息日": 0,
+        "连休天数": 0,
+        "是否法定连休段": 0,
+        "连休段内第几天": 0,
+        "距下一法定假日_天": 85,
+        "source_label": 0
+      },
+      "duplicate_key_count": 0,
+      "date_min": "2015-01-01",
+      "date_max": "2026-12-31",
+      "invalid_date_count": 0,
+      "date_unique_count": 4383,
+      "missing_calendar_days_between_dates": 0
+    },
+    "annual_city_tourism_1999_2024.csv": {
+      "row_count": 26,
+      "column_count": 10,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "指标": 0,
+        "year": 0,
+        "数值": 0,
+        "单位": 0,
+        "数据来源": 0,
+        "原始数列名": 0,
+        "source_label": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "poi_attraction.csv": {
+      "row_count": 1000,
+      "column_count": 6,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "name": 0,
+        "major_category": 0,
+        "minor_category": 0,
+        "longitude": 0,
+        "latitude": 0,
+        "poi_family": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "poi_parking.csv": {
+      "row_count": 2082,
+      "column_count": 6,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "name": 0,
+        "major_category": 0,
+        "minor_category": 0,
+        "longitude": 0,
+        "latitude": 0,
+        "poi_family": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "poi_hotel.csv": {
+      "row_count": 9970,
+      "column_count": 6,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "name": 0,
+        "major_category": 0,
+        "minor_category": 0,
+        "longitude": 0,
+        "latitude": 0,
+        "poi_family": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "poi_transit.csv": {
+      "row_count": 1663,
+      "column_count": 6,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "name": 0,
+        "major_category": 0,
+        "minor_category": 0,
+        "longitude": 0,
+        "latitude": 0,
+        "poi_family": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "daily_search_heat_17_keywords_2016_2026.csv": {
+      "row_count": 65841,
+      "column_count": 7,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "date": 0,
+        "keyword": 0,
+        "search_index": 0,
+        "pc_index": 0,
+        "mobile_index": 0,
+        "is_weekend": 0,
+        "source_label": 0
+      },
+      "duplicate_key_count": 0,
+      "date_min": "2016-01-01",
+      "date_max": "2026-08-08",
+      "invalid_date_count": 0,
+      "date_unique_count": 3873,
+      "missing_calendar_days_between_dates": 0
+    },
+    "capacity_space_standard.csv": {
+      "row_count": 17,
+      "column_count": 15,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "附录表号": 0,
+        "景区类型": 0,
+        "示例景区": 0,
+        "空间类型": 0,
+        "人均空间承载指标": 0,
+        "单位": 0,
+        "来源": 0,
+        "可信度": 0,
+        "备注": 0,
+        "per_capita_space_lower_m2": 0,
+        "per_capita_space_upper_m2": 0,
+        "per_capita_space_baseline_m2": 0
+      },
+      "duplicate_key_count": 5
+    },
+    "attraction_effective_area.csv": {
+      "row_count": 38,
+      "column_count": 18,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "area_evidence_id": 0,
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "region_code": 0,
+        "片区名": 0,
+        "attraction_name": 0,
+        "面积原值": 0,
+        "原单位": 0,
+        "area_m2": 0,
+        "面积类型": 0,
+        "是否为有效浏览面积": 0,
+        "来源等级": 0,
+        "说明": 0,
+        "来源URL": 0,
+        "model_usable_raw": 0,
+        "口径冲突": 0,
+        "is_model_usable": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "regional_effective_area_scenarios.csv": {
+      "row_count": 4,
+      "column_count": 17,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "source_region_code": 0,
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "region_code": 0,
+        "片区名": 0,
+        "S1_下限_km2": 0,
+        "S1_上限_km2": 0,
+        "口径说明": 0,
+        "S0_地理边界_km2": 0,
+        "S0说明": 0,
+        "S1_基准_km2": 0,
+        "kappa_S0toS1": 0,
+        "effective_area_lower_m2": 0,
+        "effective_area_baseline_m2": 0,
+        "effective_area_upper_m2": 0,
+        "geographic_area_m2": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "reservation_ratio_scenarios.csv": {
+      "row_count": 2,
+      "column_count": 13,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "层级": 2,
+        "数据点": 0,
+        "数值区间": 0,
+        "来源": 0,
+        "适用性说明": 0,
+        "口径": 0,
+        "可直接用作online_ratio": 0,
+        "数值_pct": 0,
+        "reservation_ratio": 0,
+        "is_direct_actual_ratio": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "hourly_service_time_evidence.csv": {
+      "row_count": 4,
+      "column_count": 15,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "region_name": 0,
+        "facility_or_scope": 0,
+        "period_start": 0,
+        "period_end": 0,
+        "day_type": 0,
+        "time_start": 0,
+        "time_end": 0,
+        "metric_name": 0,
+        "metric_value": 4,
+        "unit": 0,
+        "evidence_type": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 0,
+        "is_hourly_count": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "raw_inventory.csv": {
+      "row_count": 98,
+      "column_count": 3,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "path": 0,
+        "size_bytes": 0,
+        "suffix": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "raw_cleaned/aranya_beidaihe_new_district_summer_flow_anchors_2023_2025.csv": {
+      "row_count": 6,
+      "column_count": 12,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "period_start": 0,
+        "period_end": 0,
+        "region_name": 0,
+        "facility_or_scope": 0,
+        "visitor_count_10k_persons": 0,
+        "value_qualifier": 0,
+        "frequency": 0,
+        "metric_scope": 0,
+        "geographic_comparability": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 0
+      },
+      "duplicate_key_count": 2
+    },
+    "raw_cleaned/beidaihe_tourism_anchors_revised.csv": {
+      "row_count": 11,
+      "column_count": 10,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "period_start": 0,
+        "period_end": 0,
+        "region_name": 0,
+        "visitor_count_10k_persons": 1,
+        "value_qualifier": 1,
+        "frequency": 0,
+        "geographic_comparability": 0,
+        "data_status": 0,
+        "source_url": 1,
+        "source_note": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "raw_cleaned/haigang_aranya_tourism_anchors.csv": {
+      "row_count": 6,
+      "column_count": 11,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "period_start": 0,
+        "period_end": 0,
+        "region_name": 0,
+        "visitor_count_10k_persons": 2,
+        "tourism_value_100m_cny": 2,
+        "tourism_value_metric": 2,
+        "frequency": 0,
+        "geographic_comparability": 0,
+        "data_status": 0,
+        "source_url": 2,
+        "source_note": 0
+      },
+      "duplicate_key_count": 3
+    },
+    "raw_cleaned/L0_B5c_网络热度_百度指数_17关键词_日_2016_2026_用户提供.csv": {
+      "row_count": 65841,
+      "column_count": 8,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "日期": 0,
+        "关键词": 0,
+        "整体指数": 0,
+        "PC端指数": 0,
+        "移动端指数": 0
+      },
+      "duplicate_key_count": 65840,
+      "date_min": "2016-01-01",
+      "date_max": "2026-08-08",
+      "invalid_date_count": 0,
+      "date_unique_count": 3873,
+      "missing_calendar_days_between_dates": 0
+    },
+    "raw_cleaned/L0_C20_人均空间承载标准_国标附录A_用户提供.csv": {
+      "row_count": 17,
+      "column_count": 12,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "附录表号": 0,
+        "景区类型": 0,
+        "示例景区": 0,
+        "空间类型": 0,
+        "人均空间承载指标": 0,
+        "单位": 0,
+        "来源": 0,
+        "可信度": 0,
+        "备注": 0
+      },
+      "duplicate_key_count": 16
+    },
+    "raw_cleaned/L0_C21_景区点位面积_公开来源_用户提供.csv": {
+      "row_count": 46,
+      "column_count": 16,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "片区": 0,
+        "片区名": 0,
+        "点位名称": 0,
+        "面积原值": 8,
+        "原单位": 0,
+        "面积_平方米": 8,
+        "面积类型": 0,
+        "是否为有效浏览面积": 0,
+        "来源等级": 0,
+        "说明": 0,
+        "来源URL": 0,
+        "建模可用": 0,
+        "口径冲突": 0
+      },
+      "duplicate_key_count": 45
+    },
+    "raw_cleaned/L0_C21c_片区有效面积汇总_S1口径_用户提供.csv": {
+      "row_count": 4,
+      "column_count": 12,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "片区": 0,
+        "片区名": 0,
+        "S1_下限_km2": 0,
+        "S1_上限_km2": 0,
+        "口径说明": 0,
+        "S0_地理边界_km2": 0,
+        "S0说明": 0,
+        "S1_基准_km2": 0,
+        "kappa_S0toS1": 0
+      },
+      "duplicate_key_count": 3
+    },
+    "raw_cleaned/L0_C22_景区线上预约比例_行业报告_用户提供.csv": {
+      "row_count": 5,
+      "column_count": 11,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "data_layer": 0,
+        "数据获取方": 0,
+        "来源编号": 0,
+        "层级": 5,
+        "数据点": 0,
+        "数值区间": 0,
+        "来源": 0,
+        "适用性说明": 0,
+        "口径": 0,
+        "可直接用作online_ratio": 0,
+        "数值_pct": 1
+      },
+      "duplicate_key_count": 4
+    },
+    "raw_cleaned/online_heat_collection_plan_2023_2025.csv": {
+      "row_count": 4,
+      "column_count": 8,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "keyword": 0,
+        "coverage_start": 0,
+        "coverage_end": 0,
+        "granularity": 0,
+        "target_source": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "collection_note": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "raw_cleaned/public_holiday_periods_2023_2025.csv": {
+      "row_count": 19,
+      "column_count": 7,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "year": 0,
+        "holiday_name": 0,
+        "period_start": 0,
+        "period_end": 0,
+        "total_days": 0,
+        "source_url": 0,
+        "data_status": 0
+      },
+      "duplicate_key_count": 16
+    },
+    "raw_cleaned/q3_resource_constraints_researched.csv": {
+      "row_count": 25,
+      "column_count": 11,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "region_name": 0,
+        "resource_category": 0,
+        "facility_or_scope": 0,
+        "parameter_name": 0,
+        "numeric_value": 9,
+        "unit": 9,
+        "period_or_as_of": 0,
+        "constraint_role": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 0
+      },
+      "duplicate_key_count": 17
+    },
+    "raw_cleaned/qinhuangdao_city_tourism_annual_revised.csv": {
+      "row_count": 9,
+      "column_count": 9,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "year": 0,
+        "visitor_count_10k_persons": 1,
+        "tourism_value_100m_cny": 2,
+        "visitor_scope": 1,
+        "tourism_value_metric": 2,
+        "frequency": 0,
+        "data_status": 0,
+        "source_url": 1,
+        "source_note": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "raw_cleaned/qinhuangdao_daily_weather_2023_2025.csv": {
+      "row_count": 1096,
+      "column_count": 12,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "date": 0,
+        "temperature_mean_c": 0,
+        "temperature_max_c": 0,
+        "temperature_min_c": 0,
+        "precipitation_mm": 0,
+        "wind_speed_max_kmh": 0,
+        "latitude": 0,
+        "longitude": 0,
+        "timezone": 0,
+        "source_name": 0,
+        "source_url": 0,
+        "data_status": 0
+      },
+      "duplicate_key_count": 0,
+      "date_min": "2023-01-01",
+      "date_max": "2025-12-31",
+      "invalid_date_count": 0,
+      "date_unique_count": 1096,
+      "missing_calendar_days_between_dates": 0
+    },
+    "raw_cleaned/qinhuangdao_event_anchors_2023_2025.csv": {
+      "row_count": 6,
+      "column_count": 9,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "period_start": 0,
+        "period_end": 0,
+        "event_name": 0,
+        "event_category": 0,
+        "event_count": 0,
+        "coverage": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "raw_cleaned/qinhuangdao_hotel_occupancy_capacity_anchors_2023_2025.csv": {
+      "row_count": 10,
+      "column_count": 12,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "period_start": 0,
+        "period_end": 0,
+        "region_name": 0,
+        "facility_or_scope": 0,
+        "parameter_name": 1,
+        "numeric_value": 1,
+        "unit": 0,
+        "value_qualifier": 0,
+        "frequency": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 1
+      },
+      "duplicate_key_count": 5
+    },
+    "raw_cleaned/qinhuangdao_hourly_entry_time_evidence_2023_2025.csv": {
+      "row_count": 7,
+      "column_count": 14,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "region_name": 0,
+        "facility_or_scope": 0,
+        "period_start": 0,
+        "period_end": 0,
+        "day_type": 0,
+        "time_start": 0,
+        "time_end": 1,
+        "metric_name": 0,
+        "metric_value": 7,
+        "unit": 0,
+        "evidence_type": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 0
+      },
+      "duplicate_key_count": 5
+    },
+    "raw_cleaned/qinhuangdao_parking_shuttle_operational_anchors_2023_2025.csv": {
+      "row_count": 8,
+      "column_count": 12,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "period_start": 0,
+        "period_end": 0,
+        "region_name": 0,
+        "facility_or_scope": 0,
+        "parameter_name": 0,
+        "numeric_value": 4,
+        "unit": 4,
+        "value_qualifier": 0,
+        "frequency": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 0
+      },
+      "duplicate_key_count": 3
+    },
+    "raw_cleaned/qinhuangdao_public_visitor_flow_anchors_2023_2025.csv": {
+      "row_count": 40,
+      "column_count": 11,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "period_start": 0,
+        "period_end": 0,
+        "region_name": 0,
+        "facility_or_scope": 0,
+        "visitor_count_10k_persons": 0,
+        "metric_scope": 0,
+        "frequency": 0,
+        "geographic_comparability": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 0
+      },
+      "duplicate_key_count": 16
+    },
+    "raw_cleaned/qinhuangdao_summer_regional_flow_anchors_2023_2025.csv": {
+      "row_count": 10,
+      "column_count": 11,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "period_start": 0,
+        "period_end": 0,
+        "region_name": 0,
+        "visitor_count_10k_persons": 0,
+        "value_qualifier": 0,
+        "frequency": 0,
+        "metric_scope": 0,
+        "geographic_comparability": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 0
+      },
+      "duplicate_key_count": 3
+    },
+    "raw_cleaned/qinhuangdao_transport_environment_annual_2016_2025_revised.csv": {
+      "row_count": 10,
+      "column_count": 17,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "year": 0,
+        "road_passenger_10k_persons": 2,
+        "civil_aviation_passenger_10k_persons": 5,
+        "public_bus_passenger_10k_persons": 2,
+        "bus_operating_vehicles": 2,
+        "taxi_operating_vehicles": 4,
+        "civil_vehicle_10k": 6,
+        "nev_vehicle_10k": 8,
+        "domestic_airport_destinations": 9,
+        "road_length_km": 8,
+        "expressway_length_km": 8,
+        "pm25_ug_m3": 9,
+        "good_air_days_pct": 8,
+        "frequency": 0,
+        "data_status": 0,
+        "source_url": 2,
+        "source_note": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "raw_cleaned/qinhuangdao_transport_environment_annual_2023_2025.csv": {
+      "row_count": 3,
+      "column_count": 17,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "year": 0,
+        "road_passenger_10k_persons": 1,
+        "civil_aviation_passenger_10k_persons": 1,
+        "public_bus_passenger_10k_persons": 1,
+        "bus_operating_vehicles": 1,
+        "taxi_operating_vehicles": 1,
+        "civil_vehicle_10k": 1,
+        "nev_vehicle_10k": 1,
+        "domestic_airport_destinations": 2,
+        "road_length_km": 1,
+        "expressway_length_km": 1,
+        "pm25_ug_m3": 2,
+        "good_air_days_pct": 2,
+        "frequency": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 0
+      },
+      "duplicate_key_count": 0
+    },
+    "raw_cleaned/shanhaiguan_tourism_anchors.csv": {
+      "row_count": 7,
+      "column_count": 10,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "period_start": 0,
+        "period_end": 0,
+        "region_name": 0,
+        "visitor_count_10k_persons": 2,
+        "tourism_income_100m_cny": 2,
+        "value_qualifier": 2,
+        "frequency": 0,
+        "data_status": 0,
+        "source_url": 2,
+        "source_note": 0
+      },
+      "duplicate_key_count": 2
+    },
+    "raw_cleaned/supplementary_data_collection_register.csv": {
+      "row_count": 5,
+      "column_count": 8,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "priority": 0,
+        "data_item": 0,
+        "model_use": 0,
+        "preferred_time_span": 0,
+        "public_data_status": 0,
+        "collection_method": 0,
+        "source_url": 0,
+        "source_note": 0
+      },
+      "duplicate_key_count": 3
+    },
+    "raw_cleaned/tourism_resource_capacity_anchors.csv": {
+      "row_count": 5,
+      "column_count": 10,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "as_of_date": 0,
+        "region_name": 0,
+        "facility_name": 0,
+        "resource_type": 0,
+        "capacity_value": 3,
+        "capacity_unit": 3,
+        "geographic_comparability": 0,
+        "data_status": 0,
+        "source_url": 0,
+        "source_note": 0
+      },
+      "duplicate_key_count": 2
+    },
+    "raw_cleaned/poi_qinhuangdao_purchased.csv": {
+      "row_count": 99229,
+      "column_count": 6,
+      "duplicate_row_count": 0,
+      "null_counts": {
+        "name": 0,
+        "major_category": 0,
+        "minor_category": 0,
+        "longitude": 0,
+        "latitude": 0,
+        "poi_family": 0
+      },
+      "duplicate_key_count": 0
+    }
+  },
+  "read_exceptions": {
+    "data\\raw\\qinhuangdao_summer_regional_flow_anchors_2023_2025.csv": "Malformed CSV record(s): parsed with Python engine and malformed rows excluded; inspect the original source before using excluded observations."
+  }
+}
