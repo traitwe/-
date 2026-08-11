@@ -213,11 +213,6 @@ def _daily_design(frame: pd.DataFrame, region_levels: tuple[str, ...], dynamic: 
                 finite_median = float(np.nanmedian(values)) if np.isfinite(values).any() else 0.0
                 pieces.append(np.nan_to_num(values, nan=finite_median).reshape(-1, 1))
                 names.append(name)
-    if dynamic and "target_lag_1" in calendar.columns:
-        values = pd.to_numeric(calendar["target_lag_1"], errors="coerce").to_numpy(dtype=float)
-        finite_median = float(np.nanmedian(values)) if np.isfinite(values).any() else 0.0
-        pieces.append(np.nan_to_num(values, nan=finite_median).reshape(-1, 1))
-        names.append("target_lag_1")
     if "region_code" in calendar.columns:
         regions = calendar["region_code"].astype(str)
         for region in region_levels[1:]:
@@ -229,7 +224,7 @@ def _daily_design(frame: pd.DataFrame, region_levels: tuple[str, ...], dynamic: 
 def fit_daily_ridge_forecaster(
     frame: pd.DataFrame, target_column: str, dynamic: bool, ridge_alpha: float = 10.0,
 ) -> DailyRidgeForecaster:
-    """Fit a log-scale daily model; dynamic=True permits lag/search/weather covariates."""
+    """Fit a log-scale daily model with forecast-available dynamic covariates only."""
     if target_column not in frame.columns:
         raise ValueError("daily frame missing target column")
     if ridge_alpha < 0:

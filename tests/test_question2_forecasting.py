@@ -17,7 +17,7 @@ from src.models.question2_forecasting import (
     scenario_adjust_weather,
 )
 from src.features.search_features import build_search_theme_features
-from src.analysis.q2_forecast_outputs import _attach_covariates, _daily_comparison, apply_regional_relative_split_conformal_interval, apply_relative_split_conformal_interval, build_climatological_covariates, build_external_anchor_validation, build_q2_diagnostic_figures, build_question2_outputs, select_regional_search_lags
+from src.analysis.q2_forecast_outputs import _attach_covariates, _daily_comparison, apply_regional_relative_split_conformal_interval, apply_relative_split_conformal_interval, build_climatological_covariates, build_external_anchor_validation, build_q2_diagnostic_figures, build_question2_outputs, daily_rolling_origin_validation, select_regional_search_lags
 
 
 def test_annual_rolling_origin_splits_keep_all_training_years_before_the_target():
@@ -147,6 +147,22 @@ def test_calendar_baseline_excludes_weather_and_search_features():
     assert "search_lag_1" not in model.feature_names
 
 
+def test_dynamic_daily_forecaster_excludes_legacy_target_lag_from_future_features():
+    source = pd.DataFrame({
+        "date": pd.date_range("2025-07-01", periods=6, freq="D"),
+        "region_code": ["BDH"] * 6,
+        "target": [10.0, 12.0, 11.0, 13.0, 14.0, 15.0],
+        "target_lag_1": [9.0, 10.0, 12.0, 11.0, 13.0, 14.0],
+        "search_lag_1": [20.0, 21.0, 22.0, 23.0, 24.0, 25.0],
+    })
+
+    model = fit_daily_ridge_forecaster(source, target_column="target", dynamic=True)
+    future = pd.DataFrame({"date": ["2026-07-01"], "region_code": ["BDH"], "search_lag_1": [26.0]})
+
+    assert "target_lag_1" not in model.feature_names
+    assert len(predict_daily_ridge_forecaster(model, future)) == 1
+
+
 def test_weather_scenario_only_changes_weather_input_columns():
     source = pd.DataFrame({"date": ["2026-07-01"], "rain_mm": [4.0], "temperature_c": [28.0], "search_lag_1": [10.0]})
 
@@ -213,6 +229,33 @@ def test_daily_comparison_uses_latest_year_with_sufficient_observations_and_repo
     assert "historical_weekday_median" in set(result["candidate"])
     assert {"picp_80", "mean_interval_width", "interval_calibration", "conformal_relative_radius"}.issubset(result.columns)
     assert result.loc[result["candidate"].eq("dynamic_ridge"), "interval_calibration"].iloc[0] == "regional_relative_split_conformal_pre_2024"
+
+
+def test_daily_rolling_origin_validation_keeps_training_and_calibration_before_each_origin():
+    dates = pd.date_range("2023-01-01", "2024-09-30", freq="D")
+    regional = pd.DataFrame({
+        "date": dates,
+        "region_code": "BDH",
+        "pressure_index": 1.0 + np.linspace(0.0, 2.0, len(dates)),
+        "baseline_scale": 100.0,
+    })
+    observed = regional.loc[regional["date"].dt.day.isin([1, 8, 15, 22]), ["date", "region_code"]].copy()
+    observed["visitor_index"] = 100.0 * (1.0 + np.linspace(0.0, 2.0, len(observed)))
+
+    result = daily_rolling_origin_validation(
+        regional,
+        observed,
+        origins=["2024-01-01", "2024-07-01"],
+        horizon_days=62,
+        min_test_rows=4,
+    )
+
+    assert set(result["origin_date"]) == {pd.Timestamp("2024-01-01"), pd.Timestamp("2024-07-01")}
+    assert (result["training_end"] < result["origin_date"]).all()
+    assert (result["calibration_end"] < result["origin_date"]).all()
+    assert {"all_dates_all_regions", "region__BDH", "summer_all_regions", "summer__BDH"}.issubset(set(result["evaluation_scope"]))
+    assert {"mae", "rmse", "smape", "wape"}.issubset(result.columns)
+    assert np.isfinite(result.loc[result["test_rows"].gt(0), "wape"]).all()
 
 
 def test_climatological_covariates_use_only_history_before_forecast_year():
@@ -299,6 +342,8 @@ def test_q2_output_builder_writes_constrained_city_and_three_region_forecasts(tm
     assert daily["interval_calibration"].eq("regional_relative_split_conformal_pre_2025").all()
     assert report["daily_validation_scope"] == "raw_attraction_observation_dates_only"
     assert (tmp_path / "q2_annual_model_comparison.csv").exists()
+    rolling_validation = pd.read_csv(tmp_path / "q2_daily_rolling_origin_validation.csv", encoding="utf-8-sig")
+    assert {"origin_date", "evaluation_scope", "wape"}.issubset(rolling_validation.columns)
     assert report["annual_selected_model"] in {"weighted_log_trend", "last_year_naive", "recent_median_growth"}
     assert report["daily_validation_covariate_mode"] == "conditional_on_realized_weather_and_lagged_search"
     assert report["weather_response_model"] in {"dynamic_ridge_sensitivity_only", "selected_daily_model"}

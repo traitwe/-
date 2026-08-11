@@ -112,6 +112,8 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 
 近期中位增长法给出 2026 年全市点预测 9,971.43 万人次。动态 Ridge 的误差最低，作为日级基准；其区间覆盖率为 0.899。山海关的相对校准半径为 1.572，下界出现零截断，表示高不确定性而非零需求。
 
+为避免上述单一年份留出法偶然有利于某一模型，另以 2024-04-01 和 2024-07-01 为滚动原点，各进行 92 日前向检验；每个原点的训练、锚点尺度换算与区间校准均严格截断在原点之前。动态 Ridge 在全片区窗口的 WAPE 分别为 37.63\%（$n=36$）和 70.89\%（$n=83$），均低于季节--日历 Ridge 的 39.30\% 和 75.53\%。7--8 月子样本（$n=65$）的 WAPE 为 65.92\%。该附加检验仅条件于当期已实现的天气和滞后搜索量，且被解释变量仍是景区锚点约束指数，不将其宣传为事前实测客流预测精度。
+
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{2026 年暑期日峰值分位情景（人次）}\label{tab:q2peak}
@@ -203,6 +205,8 @@ Q4 不另起一套资源模型，而是以 Q3 的基线日需求 $V_d$ 为起点
 \begin{appendices}
 \section{数据与复现说明}
 全部输入口径、参数边界与生成结果保存在项目的 \texttt{data}、\texttt{outputs} 和“论文写作”目录。运行 \texttt{scripts/run\_paper\_mainline.py} 可重建主线输出，运行 \texttt{pytest -q} 可执行回归测试。主线仅在 Q1--Q4 检查点均齐全时刷新 \texttt{outputs/verified\_artifacts}；若运行失败，\texttt{outputs/delivery\_status.json} 会指定已验证产物版，禁止混用失败运行的新表。公开网页来源及数据适用边界详见数据登记表与封稿核验文件。
+
+问题二可复核表为 \url{q2_daily_rolling_origin_validation.csv}（位于 \url{outputs/question2_analysis}）。其固定尝试 2024-01-01、2024-04-01、2024-07-01 三个原点和 92 日窗口；原点前的数据才可进入训练、游客指数--压力尺度换算与 split-conformal 校准。若某窗口去重后少于 20 条锚点观测，则不输出该窗口，而不以插补值补足。动态日模型只使用日历、当期天气和预先滞后的搜索变量，不使用 \texttt{target\_lag\_1} 或任何未来游客量。滚动检验中的天气与搜索量是已实现协变量，仅用于条件检验；2026 年预测改用预预测期按月日构造的气候情景。
 \end{appendices}
 
 \end{document}
