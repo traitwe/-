@@ -1,6 +1,6 @@
 % !TeX program = xelatex
 \documentclass[withoutpreface,bwprint]{cumcmthesis}
-\graphicspath{{../../../outputs/figures/}{../../../outputs/question2_analysis/}{../../../outputs/question4_analysis/}}
+\graphicspath{{figures/}}
 \title{多源公开数据约束下秦皇岛旅游客流预测与资源协同配置}
 \tihao{B}
 \baominghao{}
@@ -14,26 +14,169 @@
 \dayinput{11}
 \newcommand{\paperTableWidth}{0.86\textwidth}
 
+% ---- 参考文献标题与正文各章一致，使用中文流水号（八、参考文献）----
+\makeatletter
+\patchcmd{\thebibliography}{\section*{\refname}}{\section{\refname}}{}{}
+\makeatother
+
+% ---- 附录源代码排版样式 ----
+\lstdefinestyle{pysrc}{
+  language=Python,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray!80!black},
+  stringstyle=\color{gray!55!black},
+  numbers=left, numberstyle=\tiny\color{gray}, numbersep=6pt,
+  frame=single, framerule=0.4pt, rulecolor=\color{gray!50},
+  backgroundcolor=\color{gray!4},
+  breaklines=true, breakindent=1.2em, showstringspaces=false,
+  columns=fullflexible, keepspaces=true, tabsize=4,
+  xleftmargin=2.2em, aboveskip=6pt, belowskip=8pt,
+}
+
+% ---- 正文文献引用改为上标（GB/T 7714 顺序编码制）----
+\AtBeginDocument{%
+  \let\oldcite\cite
+  \renewcommand{\cite}[1]{\textsuperscript{\oldcite{#1}}}%
+}
+
+
 \begin{document}
 \maketitle
 
 \begin{abstract}
-针对秦皇岛全市及北戴河、海港--阿那亚、山海关三片区在日级真实客流、停车占用和接驳调度台账不完整条件下的旅游管理问题，本文构建``客流尺度统一--预测--资源配置--情景重优化''的四阶段方法。首先，以官方年度国内游客量为绝对尺度，以景区排行观测、日历、天气和搜索主题构建三区连续日级相对旅游压力；对未上榜景点采用左删失处理，避免将未展示误作零客流。其次，采用年度增长预测与片区动态 Ridge 预测相结合的方法，输出 2026 年全市年度规模和三区日级分位情景，并以片区 split-conformal 校准报告不确定性。再次，将游客规模换算为停车泊位需求、接驳车辆需求和三班制人员需求，在停车容量、服务班距与班次覆盖约束下搜索离散资源方案。最后，对大型活动和连续降雨情景实施重优化。结果表明：2026 年全市点预测为 9,971.43 万人次；北戴河、海港--阿那亚和山海关暑期日峰值的中位情景分别为 12.75 万、5.82 万和 13.55 万人次。高压情景下，停车缺口应转化为外圈 P+R、预约与错峰需求，而非虚构新增供给。全文将日级客流、资源规模和成本均明确标注为锚点约束估计或情景规划量，不将其表述为运营实测台账。
+针对秦皇岛全市及北戴河、海港--阿那亚、山海关三片区在日级真实客流、停车占用和接驳调度台账不完整条件下的旅游管理问题，本文构建“客流尺度统一--预测--资源配置--情景重优化”的四阶段方法。
+
+针对问题一，本文以官方年度国内游客量为绝对尺度，以景区排行观测、日历、天气和搜索主题构建三区连续日级相对旅游压力；对景区排行未上榜的记录采用左删失处理，将其作为低于展示阈值的信息纳入模型，避免误记为零客流。
+
+针对问题二，本文采用年度增长预测与片区动态 Ridge 预测相结合的方法，输出 2026 年全市年度规模和三区日级分位情景，并以分片区 split-conformal 校准报告预测不确定性。2026 年全市点预测为 9,971.43 万人次；北戴河、海港--阿那亚和山海关暑期日峰值的中位情景分别为 12.75 万、5.82 万和 13.55 万人次。
+
+针对问题三，本文将游客规模换算为停车泊位需求、接驳车辆需求和三班制人员需求，在停车容量、服务班距与班次覆盖约束下求解离散资源配置方案。高压情景下的停车缺口应由外圈 P+R、预约与错峰承接。
+
+针对问题四，本文对大型活动和连续降雨两类情景实施需求参数更新与重优化，验证既有资源方案的适配能力并给出调整方向。
+
+全文将日级客流、资源规模和成本均标注为锚点约束估计或情景规划量，区别于运营实测台账。
 
 \keywords{旅游客流\quad 尺度约束\quad 日级预测\quad 资源配置\quad 情景优化}
 \end{abstract}
 
 \section{问题重述}
-秦皇岛旅游活动具有显著暑期性、节假日脉冲和片区异质性。题目要求构建游客时序、预测未来客流、制定停车--接驳--人员配置，并评估突发场景。困难在于公开数据的统计口径并不一致：全市年度数据具有绝对量，片区日级数据多为景区排行指数或报道锚点，停车和接驳数据也多为设施节点或计划班距。
+\subsection{问题背景}
+秦皇岛地处京津冀城市群东北翼，坐拥北戴河滨海度假区、山海关历史文旅区与海港区--阿那亚休闲片区三大核心板块，是环渤海地区最重要的避暑与短途旅游目的地之一。其客流呈现三重叠加规律：年内以 7--8 月为绝对高峰、冬季长期低位的强季节性；五一与国庆等法定假日的短期脉冲；以及单日进出景区的潮汐式时段特征。与此同时，气温、降水、大雾等气象条件，文旅赛事与节庆演出等城市活动，交通出行成本与网络打卡热度等因素，共同使实际客流频繁偏离常规趋势。
 
-因此，本文不将缺失记录补造为实测值，而将问题拆为四层：Q1 用年度总量约束日级压力形态；Q2 输出年度点预测与片区日级分位情景；Q3 将需求情景换算为独立量纲的泊位、车辆和人员；Q4 在活动、降雨扰动下重新优化。该路线保证每一层的输出均可追溯至上一层的口径。
+对景区管理部门而言，这一不确定性直接转化为资源配置难题：观光接驳车、停车场、安保、保洁与售票窗口若配置过剩则推高运营开支，配置不足则引发道路拥堵、停车困难与长时间排队，显著削弱游览体验。因此，精准预判多时间尺度的游客规模，并据此动态调配服务资源，构成本问题的现实需求。
+
+\subsection{问题提出}
+本文需依次解决四个递进问题：
+
+\begin{enumerate}[label=（\arabic*）,leftmargin=2.2em]
+\item 查找网络公开资料，自主构建客流时序数据，完成规范化预处理，分析全市游客总量的周期性波动，划分淡旺季，刻画单日进离场时段分布，甄别影响到访量的各类因素并量化其强弱，对客流时序进行趋势、季节与随机波动的分解。
+\item 针对全市中长期月度总量与三大片区短期逐日客流两个尺度，分别建立预测模型并完成训练与效果检验，选用合理误差指标筛选最优模型，据此预估暑期旺季峰值范围，分析天气突变等不确定因素带来的预测偏差。
+\item 以客流预测结果为输入，综合考虑运营成本与游览体验两方面，结合场地泊位、运输运力与人员排班等约束，建立资源配置优化模型，给出旺、平、淡季常态化方案及北戴河暑期高峰的临时增补调度方案。
+\item 选取大型文旅活动与持续性阴雨两种典型场景，检验既有配置方案的适配能力并给出优化调整方案，分析关键参数变动对最优配置的影响以检验模型稳定性，剖析模型不足并提出改进方向，形成面向文旅主管部门的量化管理建议。
+\end{enumerate}
+
+本问题的核心难点在于统一公开数据的统计口径：全市年度数据具有绝对量属性，片区日级数据多为景区排行指数或零散报道锚点，停车与接驳数据则多为设施节点或计划班距，三者量纲与可信度均不相同，须分别处理后再纳入统一框架。
+
+因此，本文将问题拆分为四层：Q1 用年度总量约束日级压力形态；Q2 输出年度点预测与片区日级分位情景；Q3 将需求情景换算为独立量纲的泊位、车辆和人员；Q4 在活动、降雨扰动下重新优化。四层依次递进，每一层的输出均可追溯至上一层的口径。
 
 \section{问题分析}
-四个问题具有由“量”到“策”的递进关系。问题一先解决公开数据粒度不统一的问题，给出受年度总量约束的日级形态；问题二在此基础上比较预测基准并给出未来客流情景；问题三将预测情景转换为泊位、接驳车辆和班次人员的协同需求；问题四考察活动与降雨冲击下的资源重配置。各问均将缺失运营台账显式保留为参数或不确定性边界。
+四个问题构成由“量”到“策”的完整链条：前两问回答“有多少人来”，后两问回答“应当配多少资源”。各问均将缺失的运营台账保留为参数或不确定性边界，以此刻画信息缺口。
 
-\section{模型假设与符号说明}
-\subsection{符号说明与数据口径}
-表\ref{tab:data}给出进入主线的数据层级。搜索量仅作需求代理变量，天气词不进入旅游需求主题；不匹配三区范围的景区报道只作合理性核验，不计入误差。
+\subsection{问题一分析}
+本问要求“自主构建”客流时序。公开可获取的信息分三类——全市年度官方总量（有绝对量、无日内分布）、景区排行日指数（有日级形态、无绝对量、且存在选择性缺失）、节假日报道锚点（有绝对量、但时点零散且地域范围不一）。
+
+据此，本文将“绝对尺度”与“相对形态”分离处理：以年度官方总量承担绝对尺度，以景区指数配合日历、天气与搜索主题承担日级形态，两者通过归一化权重耦合，使日级估计之和严格等于年度总量。景区榜单未出现的记录作为“低于展示阈值”的左删失信息参与似然——该榜单每日仅保留全国拥堵排名前列的景点，因此“未上榜”本身即是一种负向信息。随后对压力序列作趋势--季节--随机三分解，并以标准化回归系数量化各影响因子强弱。
+
+\subsection{问题二分析}
+本问的两个尺度需要不同的建模策略。全市年度总量样本量小（23 个年度点）、噪声大，任何高容量模型都会过拟合，故采用对数趋势、上一年朴素法与近期中位增长法三者的留出比较，以留出集表现决定最终模型；片区日级则有 1{,}096 天 $\times$ 3 区的形态序列，可引入日历、天气与滞后搜索主题作为协变量。
+
+两个尺度的建模均需验证模型的有效性。为此本文设置两道检验：其一，日级模型须与朴素基准（历史星期中位数）比较，若复杂模型表现劣于朴素法，则采用朴素法；其二，通过消融实验分离日历因素与动态协变量的边际贡献，避免将季节性效应归因于天气与热度变量。不确定性方面，考虑到三区波动性差异显著，采用分片区 split-conformal 校准，不使用全局单一区间。
+
+\subsection{问题三分析}
+本问旨在将客流规模换算为泊位、接驳与人员三类不同量纲的资源需求。停车以泊位计、接驳以车辆计、人员以班次计，三者不可直接加总。因此模型必须先分别换算需求，再在各自的容量约束下求配置，最后通过一个显式的权衡目标将投入与服务缺口联系起来——各项在进入目标函数前先对其满覆盖需求作标准化，这是跨量纲比较得以成立的前提。
+
+由于逐时停车占用、车辆调度与人力成本台账等真实数据难以获取，本文将私家车比例、平均同行人数、高峰到达比例、单车运力与满载率等设为显式情景参数，并在保守、中位、高压三档下分别求解。为使“体验损耗”这一目标具备经济含义，引入时间价值（VOT）将游客的停车绕行、接驳等待与排队时间损失货币化，作为资源投入之外的独立评估维度。
+
+\subsection{问题四分析}
+本文沿用问题三的目标函数与约束，更新受扰动日期的需求参数后重新求解。大型活动以“预热--峰值--余波”的脉冲刻画，连续阴雨以逐日递进的衰减刻画，未受扰动日期保持基线值。场景间的差异因此可明确归因于需求变化。
+
+稳定性检验采用两条路径：一是对五项关键情景参数作扰动排序，识别最影响服务缺口的因素；二是比较固定基线方案与重优化方案在同一扰动下的最大服务缺口指数，量化“动态调度相对于静态配置”的收益。
+
+
+\section{模型假设}
+\subsection{基本假设}
+本文的假设分为三类：\textbf{尺度锚定型}（删去后某个量无法算出，构成模型承重结构）、\textbf{简化型}（删去后模型更复杂但仍可解）与\textbf{边界型}（限定结论的适用范围）。
+
+\begin{enumerate}[label=\textbf{A\arabic*.},leftmargin=3.0em,itemsep=3pt]
+\item\textbf{（尺度锚定）} 秦皇岛市统计部门公布的年度国内游客接待量为全市客流的绝对尺度基准，其统计口径在 2002--2024 年间保持可比。该假设是日级估计获得绝对量的唯一来源，用于式(\ref{eq:scale})。
+\item\textbf{（尺度锚定）} 景区排行指数与全市实际客流在对数尺度上存在稳定的线性关系，其比例系数在片区内保持不变。该假设使相对形态可被换算为游客规模情景，用于 Q2 的尺度映射。
+\item\textbf{（尺度锚定）} 公开报道的节假日客流锚点，在地域范围、时间窗口与统计口径三者同时匹配时可用于尺度校准；不匹配时仅作合理性核验，不计入误差。
+\item\textbf{（简化）} 景区排行榜单每日仅收录排名靠前的景点，故某景点某日“未上榜”表示其客流低于当日展示阈值，而非零客流。该缺失机制为非随机缺失（MNAR），以左删失似然处理，用于式(\ref{eq:censor})。
+\item\textbf{（简化）} 网络搜索热度是旅游需求的先行代理变量而非需求本身；其对客流的影响存在片区异质的滞后期，且需按年标准化以消除平台份额漂移。含地域天气语义的关键词只作控制变量，不进入需求主题因子。
+\item\textbf{（简化）} 同一片区内游客在服务时段上的分布形态在同类日期（工作日、周末、节假日）之间保持一致，可用固定的早、中、晚三时段占比刻画。
+\item\textbf{（边界）} 公开的服务班距作为服务水平约束，不用于反推实际投入车辆数或单车载客量；未公布泊位数的停车场仅作为空间换乘节点，不计入容量。
+\item\textbf{（边界）} 私家车出行比例、平均同行人数、高峰到达比例、停留时长、单车座位数、满载率与服务效率均为情景参数，取值区间见敏感性分析。
+\item\textbf{（边界）} 突发场景仅通过改变游客到访需求发挥作用，不改变景区的物理容量、道路通行能力与服务效率本身。
+\end{enumerate}
+
+\section{符号说明}
+\subsection{主要符号}
+表\ref{tab:symbol}列出全文使用的主要符号。凡未在表中标注“实测”的量，均为模型估计值或情景规划量。
+
+{\small\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{@{\extracolsep{\fill}}>{\centering\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{6.9cm}>{\raggedright\arraybackslash}p{2.9cm}@{}}
+\caption{主要符号说明}\label{tab:symbol}\\
+\toprule
+符号 & 含义 & 单位/性质\\ \midrule
+\endfirsthead
+\multicolumn{3}{l}{\small 续表\ref{tab:symbol}}\\ \toprule
+符号 & 含义 & 单位/性质\\ \midrule
+\endhead
+\bottomrule
+\endfoot
+$r$ & 片区索引，$r\in\{$北戴河, 海港--阿那亚, 山海关$\}$ & （—）\\
+$t,\,d$ & 日期索引 & （—）\\
+$y$ & 年份索引 & （—）\\
+$Y_y$ & 第 $y$ 年全市官方年度国内游客量 & （人次，\textbf{实测}）\\
+$F_{r,t}$ & 片区 $r$ 在日期 $t$ 的相对旅游压力 & （无量纲，估计）\\
+$z_{r,t}$ & 压力的对数变换，$z_{r,t}=\log(1+F_{r,t})$ & （无量纲）\\
+$\mathbf X_t$ & 日级协变量向量（滞后搜索主题、周末、法定假日、气温、降水） & （—）\\
+$S_t$ & 日期状态，取常态、暑期、节假日冲击三值 & （—）\\
+$a_r,\phi_r,\boldsymbol\beta,\delta_{r,S}$ & 压力方程的截距、自回归、协变量与状态效应参数 & （无量纲，待估）\\
+$w_t$ & 日期 $t$ 在其所属年度中的客流权重，$\sum_{t\in y}w_t=1$ & （无量纲）\\
+$\widehat Y_t$ & 年度总量约束下的全市日级客流估计 & （人次，估计）\\
+$V_{r,t}^{(q)},\,V_d$ & 锚点约束下的片区日级游客规模情景（$q$ 为分位） & （人次，情景）\\
+$\theta_r$ & 压力到游客规模的片区标度系数 & （人次/单位压力）\\
+$\hat\varrho_r$ & 片区 split-conformal 相对校准半径 & （无量纲）\\
+$\alpha$ & 私家车出行比例 & （无量纲，情景）\\
+$o$ & 平均同行人数 & （人/车，情景）\\
+$\pi$ & 高峰时段到达比例 & （无量纲，情景）\\
+$h,\,H$ & 平均停留时长、高峰服务窗口时长 & （小时，情景）\\
+$\tau$ & 接驳最大发车班距 & （分钟，约束）\\
+$T_{\mathrm{rt}}$ & 接驳单车往返周转时间 & （分钟，情景）\\
+$\kappa,\,\eta$ & 接驳单车座位数、满载率 & （座/辆、无量纲，情景）\\
+$\gamma$ & 接驳分担率（换乘游客占比） & （无量纲，情景）\\
+$s_1,s_2,s_3$ & 早、中、晚三时段客流占比，$\textstyle\sum_ks_k=1$ & （无量纲，情景）\\
+$\Lambda_d$ & 高峰时段接驳客运需求 & （人次/小时，换算）\\
+$P_d$ & 高峰泊位需求 & （个，换算）\\
+$D_d^{B},\,D_d^{N}$ & 接驳车辆需求、三班制人员需求 & （辆、班次，换算）\\
+$P_d^{\mathrm{perm}},\,P_d^{\mathrm{temp}}$ & 常设泊位容量、可调用临时泊位容量 & （个）\\
+$x_P,x_B,x_N$ & 决策变量：三类资源的覆盖率档位 & （无量纲，六档离散）\\
+$p_d,\,b_d,\,n_d$ & 由覆盖率换算的实投泊位、车辆与人员班次 & （个/辆/班次）\\
+$u_d^{P},u_d^{B},u_d^{N}$ & 停车、接驳、人员的未满足需求 & （个/辆/班次）\\
+$e_d^{P},e_d^{B},e_d^{N}$ & 三类资源的标准化服务缺口 & （无量纲，相对）\\
+$C_d^{\mathrm{rel}},\,E_d^{\mathrm{loss}}$ & 标准化相对投入成本、加权体验损失 & （无量纲，相对）\\
+$\lambda$ & 服务缺口的风险惩罚系数 & （无量纲，取 $4.0$）\\
+$J_d$ & 单日资源配置目标函数值 & （无量纲，相对）\\
+$G_d$ & 等权服务缺口指数（Q4 基线比较专用） & （无量纲，相对）\\
+$g_d^{(c)}$ & 大型活动情景下的需求放大系数 & （无量纲，情景）\\
+$\rho$ & 连续降雨情景下的日均需求衰减系数 & （无量纲，情景）\\
+$\mathrm{VOT}$ & 游客时间价值 & （元/(人$\cdot$h)）\\
+\end{longtable}}
+
+\subsection{数据口径}
+表\ref{tab:data}给出进入主线的数据层级。共分为如下四层：
 
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
@@ -47,16 +190,12 @@
 \end{tabular*}
 \end{table}
 
-设 $Y_y$ 为第 $y$ 年全市官方年度国内游客量，$F_{r,t}$ 为片区 $r$ 在日期 $t$ 的相对旅游压力，$V_{r,t}^{(q)}$ 为锚点约束下的日级游客规模情景，$P_t,N_t,S_t$ 分别为泊位、接驳车辆与三班制人员需求。除 $Y_y$ 外，本文不将上述量称为逐日实测统计。
-
-\subsection{基本假设}
-公开锚点在地域和统计范围一致时可校准尺度；服务班距可作为服务水平约束，但不能反推实际车辆数或载客量；未公布泊位数的停车场只作为换乘节点；车辆座位、满载率、私家车出行比例和服务效率均作为显式情景参数。
 
 \section{模型建立与求解}
 \subsection{数据预处理与四问衔接}
-为避免不同统计口径在模型中被混用，先按“数据层--可用范围--用途”完成预处理：年度官方游客量仅保留为全市绝对尺度；三区 2023--2025 年片区--日期记录按日期去重并统一日历、天气和搜索的日期键；景区榜单未出现的记录保留为低于展示阈值的左删失信息，不以零客流填补；外部报道仅在地域、时间与统计范围同时匹配时参与锚点校准，其余仅作合理性核验。由此得到 23 条年度锚点和 3,288 条片区--日期记录（每片区 1,096 条）。停车、接驳报道只提取为容量边界或服务水平参照，不反推未公开的实际运营台账。
+为避免不同统计口径在模型中被混用，先将原始数据按照“数据层--可用范围--用途”完成预处理：年度官方游客量保留为全市绝对尺度；三区 2023--2025 年片区--日期记录按日期去重并统一日历、天气和搜索的日期键；景区榜单未出现的记录保留为低于展示阈值的左删失信息，不以零客流填补；外部报道仅在地域、时间与统计范围同时匹配时参与锚点校准，其余仅作合理性核验。由此得到 23 条年度锚点和 3,288 条片区--日期记录（每片区 1,096 条）。停车、接驳报道提取为容量边界或服务水平参照，未公开的实际运营台账不作反推。
 
-四问之间按同一口径递进：Q1 生成年度总量约束下的日级形态，Q2 将其外推为 2026 年分位情景，Q3 将每个情景换算为资源需求并求可行配置，Q4 只更新受扰动日期的需求参数后沿用 Q3 的目标和约束重优化。因此，后一问不会重新定义前一问的游客规模。
+四问之间按同一口径递进：Q1 生成年度总量约束下的日级形态，Q2 将其外推为 2026 年分位情景，Q3 将每个情景换算为资源需求并求可行配置，Q4 只更新受扰动日期的需求参数后沿用 Q3 的目标和约束重优化。因此，后一问不会重新定义前一问的游客规模。图\ref{fig:workflow}给出四问的数据流、模型流与决策流。
 \begin{figure}[H]\centering
 \setlength{\fboxsep}{7pt}
 \fbox{\parbox{0.82\textwidth}{\centering
@@ -69,21 +208,64 @@ $\Longrightarrow$\quad\textbf{泊位--接驳--人员配置}\quad$\Longrightarrow
 \end{figure}
 
 \subsection{问题一：多尺度客流时序构建}
+\subsubsection{左删失观测方程：把“未上榜”转化为负向信息}
+本文使用的景区排行数据收录排名靠前的景点某景点某日无记录属于其客流量未达当日展示阈值。实测显示：1{,}131 天的跨度内仅 371 天有观测，(景区$\times$日) 组合覆盖率仅 4.4\%；且旺季（7--8 月）日期覆盖率为 65.0\%，淡季（12--2 月）仅 17.9\%，两者相差 3.6 倍。
+
+若按随机缺失处理，淡季将因缺少低值观测而被系统性高估，季节振幅被压缩。为此，记景区 $i$ 在日期 $t$ 的观测指标为 $Z_{i,t}$，当日展示阈值为 $c_t$，构造左删失似然
+\begin{equation}\label{eq:censor}
+\mathcal L=\prod_{(i,t)\in\mathcal O}\frac{1}{\sigma_i}\varphi\!\left(\frac{\log(1+Z_{i,t})-a_i-\lambda_iF_{r(i),t}}{\sigma_i}\right)\prod_{(i,t)\notin\mathcal O}\Phi\!\left(\frac{c_t-a_i-\lambda_iF_{r(i),t}}{\sigma_i}\right),
+\end{equation}
+其中 $\mathcal O$ 为有观测的组合，$\varphi,\Phi$ 分别为标准正态密度与分布函数。第二个连乘项使原本被丢弃的 95.6\% 组合转化为“压力低于阈值”的有效负向信息（假设 A4）。
+
 \subsubsection{相对压力层与年度尺度层}
 对片区压力取对数变换 $z_{r,t}=\log(1+F_{r,t})$，构建
-\begin{equation}
+\begin{equation}\label{eq:pressure}
 z_{r,t}=a_r+\phi_rz_{r,t-1}+\boldsymbol\beta^{\mathsf T}\mathbf X_t+\delta_{r,S_t}+\varepsilon_{r,t},
 \end{equation}
 其中 $\mathbf X_t$ 包含滞后搜索、周末、法定假日和天气，$S_t$ 表示常态、暑期和节假日冲击状态。模型用于区分可解释短期因素与剩余波动，不作因果解释。将三区压力形态归一化为年度日权重，得到
-\begin{equation}
+\begin{equation}\label{eq:scale}
 w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \widehat Y_t=Y_yw_t,
 \end{equation}
-从而严格满足 $\sum_{t\in y}\widehat Y_t=Y_y$。
+从而严格满足 $\sum_{t\in y}\widehat Y_t=Y_y$（假设 A1）。式(\ref{eq:scale})的意义在于：绝对尺度完全由官方年度总量承担，片区序列只承担相对形态，两者的可信度可分别检验。
+
+\subsubsection{周期性波动与淡旺季划分}
+以年度总量约束下的日级估计聚合到月，得到全市月度份额。2023 年 7 月与 8 月分别占全年 24.52\% 与 17.89\%，合计超过四成；11 月与 12 月各仅占 2.37\% 与 2.42\%。旺月与淡月的份额比约为 10 倍，构成极强的单峰年内循环。
+
+片区层面按各自 2023--2025 年月度中位压力的四分位数划分淡旺季，避免用统一阈值抹平片区差异。以北戴河为例，$q_{25}=0.009$、$q_{75}=0.167$，据此 6--8 月为旺季（月度中位压力 0.259/0.639/0.606），2--5 月与 9--10 月为平季，1 月与 11--12 月为淡季。该划分口径为“相对本片区自身水平”。
+
+\subsubsection{单日进离场时段分布}
+景区闸机计数非对外公开，故本文以北戴河 2024 年暑期旅游公交专线 07:30--19:30 的公开运营时段为服务窗口\cite{bdhbus}，构造归一化的三角形到达--离场情景：入园权重在 10:30--11:00 达峰（0.114），离场权重随停留时长卷积后向午后推移，离场集中度高于入园（$0.78$ 对 $0.25$）。该剖面基于假设得到（假设 A6），并对峰位作 $\pm0.10$ 服务窗口的敏感性检验，用于 Q3 的时段资源折算。
+
+\subsubsection{影响因子甄别与强度量化}
+将各协变量标准化后代入式(\ref{eq:pressure})，以标准化回归系数的绝对值度量影响强弱，结果见表\ref{tab:q1factor}。滞后一日的目的地搜索主题是最强的单一解释变量，其标准化效应（0.244）约为法定假日与周末（0.095、0.094）的 2.6 倍；降水呈显著负向影响；气温的独立贡献较小，说明其作用已大部分被暑期状态项吸收。
+
+\begin{table}[H]\centering\small
+\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
+\caption{影响因子的标准化效应与排序}\label{tab:q1factor}
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}clrc@{}}\toprule
+排序 & 影响因子 & 标准化系数 & 方向\\ \midrule
+1 & 目的地搜索主题（滞后 1 日） & 0.2438 & 正\\
+2 & 法定节假日 & 0.0952 & 正\\
+3 & 周末 & 0.0938 & 正\\
+4 & 降水量 & $-0.0436$ & 负\\
+5 & 滨海度假搜索主题（滞后 1 日） & $-0.0388$ & 负\\
+6 & 气温 & 0.0240 & 正\\
+7 & 景点搜索主题（滞后 1 日） & 0.0127 & 正\\ \bottomrule
+\end{tabular*}
+\end{table}
+
+需强调两点口径：其一，上述系数为联合模型中的\textbf{标准化关联强度}，不解释为因果效应；其二，搜索热度已按年标准化以消除平台份额漂移——实测 2017 至 2024 年原始百度指数下降 44.4\%，而同期官方客流增长 71.3\%，方向相反，若直接使用原始值将得到与事实相反的趋势结论（假设 A5）。
+
+\subsubsection{时序分解：趋势、季节与随机三部分}
+对全市日级客流估计取对数后作分解，以 31 日中心移动平均提取趋势项，以日历月均值提取季节项，余项为随机波动。各分量方差占对数序列总方差的比例为：趋势项 56.2\%、月内日历项 0.6\%、随机项 37.2\%。
+
+由于平滑窗口（31 日）短于年周期，年内季节循环被趋势项吸收，故“季节项”仅捕获月内日历效应，其占比偏低不代表季节性弱。年内季节性的真实强度应由上文月度份额刻画——旺淡月份额比约 10 倍。随机项占比达 37.2\%，说明在剔除趋势与日历效应后仍存在大量由天气突变、活动与舆情驱动的短期波动，这正是问题二引入动态协变量与区间预测的直接依据。
 
 \subsubsection{结果与解释}
-2023 年和 2024 年全市官方国内游客量分别为 80,255.2 千人次和 89,457.2 千人次\cite{qhdstat}。图\ref{fig:q1annual}反映长期恢复趋势；图\ref{fig:q1pressure}用于识别三区的时季高压窗口，而非比较三区真实人数大小。未上榜景点被保留为左删失信息，避免零值偏差。
+2023 年和 2024 年全市官方国内游客量分别为 80,255.2 千人次和 89,457.2 千人次\cite{qhdstat}。图\ref{fig:q1annual}反映长期恢复趋势；图\ref{fig:q1pressure}用于识别三区的时季高压窗口。
 
-尺度校准包含两项可复核检查：其一，式(2)使每个年度的日级估计之和等于该年度官方总量，故不会偏离绝对尺度；其二，片区序列只承担相对形态识别，范围不一致的景区报道不纳入误差计算。该处理将“绝对量是否可信”和“日级形态是否合理”分开检验，避免用少量报道锚点伪造连续实测客流。
+尺度校准包含两项可复核检查：其一，式(\ref{eq:scale})使每个年度的日级估计之和等于该年度官方总量，故不会偏离绝对尺度；其二，片区序列只承担相对形态识别，范围不一致的景区报道不纳入误差计算。
+
 
 \begin{figure}[H]\centering
 \includegraphics[width=.88\textwidth]{q1_city_annual_trend.png}
@@ -96,7 +278,7 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 
 \subsection{问题二：2026 年客流预测}
 \subsubsection{年度与日级预测}
-年度层比较对数趋势、上一年朴素法和近期中位增长法；日级层以 2024 年 149 条去重片区--日期观测为留出集，比较季节--日历 Ridge、动态 Ridge 和历史星期中位数。动态模型的片区搜索滞后由预预测期真实观测选择，北戴河、海港--阿那亚、山海关分别采用 1、3、2 日滞后。为避免单一全局不确定性掩盖片区差异，对三区分别实施 split-conformal 校准。
+年度层比较对数趋势、上一年朴素法和近期中位增长法；日级层以 2024 年 149 条去重片区--日期观测为留出集，比较季节--日历 Ridge、动态 Ridge 和历史星期中位数。动态模型的片区搜索滞后由预预测期真实观测选择，北戴河、海港--阿那亚、山海关分别采用 1、3、2 日滞后。为避免单一全局不确定性掩盖片区差异，对三区分别实施 split-conformal 校准。各模型的留出集表现见表\ref{tab:q2valid}。
 
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
@@ -110,9 +292,35 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \end{tabular*}
 \end{table}
 
-近期中位增长法给出 2026 年全市点预测 9,971.43 万人次。动态 Ridge 的误差最低，作为日级基准；其区间覆盖率为 0.899。山海关的相对校准半径为 1.572，下界出现零截断，表示高不确定性而非零需求。
+近期中位增长法给出 2026 年全市点预测 9,971.43 万人次。动态 Ridge 的误差最低，作为日级基准；其区间覆盖率为 0.899。图\ref{fig:q2monthly}给出 2026 年全市月度预测走势，呈现明显的暑期单峰结构。
 
-为避免上述单一年份留出法偶然有利于某一模型，另以 2024-04-01 和 2024-07-01 为滚动原点，各进行 92 日前向检验；每个原点的训练、锚点尺度换算与区间校准均严格截断在原点之前。动态 Ridge 在全片区窗口的 WAPE 分别为 37.63\%（$n=36$）和 70.89\%（$n=83$），均低于季节--日历 Ridge 的 39.30\% 和 75.53\%。7--8 月子样本（$n=65$）的 WAPE 为 65.92\%。该附加检验仅条件于当期已实现的天气和滞后搜索量，且被解释变量仍是景区锚点约束指数，不将其宣传为事前实测客流预测精度。
+为检验单一年份留出法的稳定性，另以 2024-04-01 和 2024-07-01 为滚动原点，各进行 92 日前向检验；每个原点的训练、游客指数--压力尺度换算与 split-conformal 校准均严格截断在原点之前。动态 Ridge 在全片区窗口的 WAPE 分别为 37.63\%（$n=36$）和 70.89\%（$n=83$），均低于季节--日历 Ridge 的 39.30\% 和 75.53\%。7--8 月子样本（$n=65$）的 WAPE 为 65.92\%。该附加检验仅条件于当期已实现的天气和滞后搜索量，且被解释变量仍是景区锚点约束指数，不将其宣传为事前实测客流预测精度。
+
+\begin{figure}[H]\centering
+\includegraphics[width=.88\textwidth]{q2_city_monthly_forecast.png}
+\caption{2026 年全市月度客流预测}\label{fig:q2monthly}
+\end{figure}
+
+\subsubsection{消融实验：动态协变量的边际贡献}
+仅比较模型优劣不足以判断天气与搜索热度的边际价值，若不加区分，季节性效应可能被归因于动态协变量。为此在同一 2024 年留出集与同一尺度映射下作消融实验：移除天气与滞后搜索后退化为季节--日历模型，保留则为动态模型。
+
+结果显示，动态协变量使 MAE 改善 4.09\%、sMAPE 改善 3.66\%，改善幅度有限，表明秦皇岛客流的可预测部分主要来自日历结构，天气与网络热度的增量贡献较小。但天气与搜索通道仍需保留：问题二的天气突变偏差分析与问题四的连续降雨情景均依赖这两类变量。区间质量方面，季节--日历模型的覆盖率略高（0.913 对 0.899），但点估计误差更大，综合权衡后仍以动态模型为基准。
+
+\subsubsection{分片区区间校准}
+三区的波动特性差异显著，若用单一全局半径将掩盖这一差异。本文对每个片区分别以预测年之前的观测作 split-conformal 校准，得到相对半径：北戴河 0.592（校准样本 90 条）、海港--阿那亚 0.670（67 条）、山海关 1.572（27 条），最大与最小相差 2.7 倍。
+
+山海关的半径明显偏大源于其校准样本仅 27 条，小样本下的分位估计不稳定；其 $q_{10}$ 经非负截断后取零，表示该片区不确定性宽，不表示预测零需求（边界 B3）。这一结果同时提示：扩大山海关的观测采集是提升预测可用性的最直接途径。
+
+\subsubsection{天气突变对预测结果的偏差}
+以气候态日历日中位天气为基准情景，分别构造持续性强降雨（在基准降水上叠加增量）与极端高温（气温 $+5\,^\circ$C）两类突变，代入动态模型重新预测，量化偏差。
+
+强降雨情景在全年 76.2\% 的日期上产生实质影响（其余日期因预测值已触及下界而不再下移），生效日的客流平均下降 30.33\%，单日最大降幅达 70.69\%。极端高温情景生效日平均变化为 $+1.70\%$，方向为正但幅度远小于降雨——这与表\ref{tab:q1factor}中降水的标准化效应（$-0.0436$）显著强于气温（$0.0240$）相互印证。
+
+由此得到两点管理含义：其一，\textbf{降雨是短期预测偏差的主导来源}，旺季资源预案必须包含降雨触发的下调机制，否则按晴天需求配置将造成大幅冗余；其二，\textbf{高温对滨海目的地并非负面因素}，不宜照搬内陆景区的高温处理经验。该偏差分析亦构成问题四连续降雨情景的参数依据。
+
+\subsubsection{暑期峰值区间}
+综合上述点预测与分片区校准，三区 2026 年暑期日峰值的分位情景见表\ref{tab:q2peak}，逐日走势与区间见图\ref{fig:q2summer}。北戴河与山海关的中位峰值接近（12.75 万与 13.55 万人次），但山海关的区间显著更宽，反映其观测基础薄弱。
+
 
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
@@ -130,21 +338,126 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \end{figure}
 
 \subsection{问题三：停车、接驳与人员协同配置}
-\subsubsection{决策变量、目标与约束}
-对任一片区--日期情景，令 $p_d,b_d,n_d$ 分别表示可调用的临时泊位、接驳车辆和三班制人员班次；令 $u_d^P,u_d^B,u_d^N$ 表示停车、接驳和人员的服务缺口。模型以资源投入与服务不足之间的可解释折中为目标：
-\begin{equation}
-\min J_d=c_Pp_d+c_Bb_d+c_Nn_d+\lambda_Pu_d^P+\lambda_Bu_d^B+\lambda_Nu_d^N.
-\end{equation}
-其约束分别为 $P_d^{\mathrm{perm}}+p_d+u_d^P\ge P_d$、$\kappa b_dH/\tau+u_d^B\ge D_d^{\mathrm{sh}}$ 和 $N_d^{\mathrm{base}}+n_d+u_d^N\ge N_d^{\mathrm{req}}$；其中 $\kappa$ 为有效单车运力、$H/\tau$ 为高峰窗内可完成的班次。所有决策变量非负且按预设离散档位取值。已公开的节点泊位数进入 $P_d^{\mathrm{perm}}$；其余容量和运力只作为情景参数，故式(3)输出的是规划配置而非实际排班台账。
+问题二的日级点预测留出集 sMAPE 为 64.30\%，对这一结论做如下解读：其一，sMAPE 以预测值与实际值之和的一半为分母，在低值日期上会被机械放大，而三区压力序列含有大量接近零的淡季日期，故该指标高估了旺季——即资源配置真正关心的时段——的相对误差；同期 MAE 与 RMSE 分别为 0.918 与 1.504，是更适合与序列自身量级对照的口径。其二，本文\textbf{不以点预测作为资源配置的唯一输入}：Q3 与 Q4 均在 $q_{10}/q_{50}/q_{90}$ 三档分位情景下分别求解，而这三档已经过分片区 split-conformal 校准，区间覆盖率为 0.899。
 
-\subsubsection{需求换算与离散优化}
-设 $V_d$ 为日级游客规模情景，私家车比例为 $\alpha$，平均同行人数为 $o$，高峰到达比例为 $\pi$，停留时间为 $h$，高峰窗口为 $H$，则高峰泊位需求为
-\begin{equation}
-P_d=\left\lceil\frac{V_d\alpha}{o}\pi\frac{h}{H}\right\rceil.
-\end{equation}
-接驳车辆数同时满足运输能力和最大班距约束；人员按入口、停车和驾驶三类服务在早、中、晚三班中覆盖。临时泊位、接驳车辆和人员均在 $\{0,0.2,\ldots,1\}$ 的覆盖档位中搜索，目标函数为相对运行成本与标准化服务缺口的加权和。该成本不是人民币，服务缺口也不是问卷满意度。为单独评估服务不足的经济影响，以 2024 年秦皇岛城镇居民人均可支配收入 48,700 元\cite{qhdstat} 除以 2,000 小时得到中位 VOT $24.35$ 元/(人\,h)，并取 $0.5$、$1.0$、$1.5$ 倍形成敏感性区间；它只货币化停车绕行、接驳等待和服务排队的游客时间损失，不替代资源投入目标。
+这一安排把预测误差转化为资源配置的\textbf{情景边界}，而非让单点误差直接传导为单一配置方案：保守档对应"少配但不浪费"，高压档对应"多配但可能冗余"，管理者据此选择风险偏好，而不必接受一个精度未知的点估计。下文的需求换算与优化在每一档情景上独立执行。
 
-北戴河 2024 年暑期旅游公交日间 15 分钟班距作为服务水平事实锚点\cite{bdhbus}；山海关火车站--景区入口的 2026 年 30 分钟班距仅作外部参照\cite{shgbus}，因范围不同不覆盖古城核心情景参数。停车占用报道未进入模型，因为其缺少与三区范围一致的连续逐时占用和泊位口径。
+\subsubsection{三类资源的需求换算}
+资源配置的输入是问题二输出的日级游客规模情景 $V_d$。停车以泊位计、接驳以车辆计、人员以班次计，三者量纲不同，须分别换算后各自求解。全日客流按早、中、晚三时段以固定占比 $s_1,s_2,s_3=0.25,0.50,0.25$ 分配（假设 A6），每时段长 $H=4$ 小时。
+
+\textbf{停车。} 设私家车出行比例为 $\alpha$、平均同行人数为 $o$、高峰到达比例为 $\pi$、平均停留时长为 $h$，则高峰窗口内的并发泊位需求为
+\begin{equation}\label{eq:parking}
+P_d=\left\lceil\frac{V_d\alpha}{o}\cdot\pi\cdot\frac{h}{H}\right\rceil.
+\end{equation}
+
+\textbf{接驳。} 设接驳分担率为 $\gamma$，则第 $k$ 时段的小时客运需求为 $\Lambda_{d,k}=V_ds_k\gamma/H$。车辆需求同时受运力与班距两项约束，取二者的较大值：
+\begin{equation}\label{eq:shuttle}
+b_{d,k}=\max\left\{\left\lceil\frac{\Lambda_{d,k}T_{\mathrm{rt}}}{60\,\kappa\eta}\right\rceil,\ \left\lceil\frac{T_{\mathrm{rt}}}{\tau}\right\rceil\right\},\qquad D_d^{B}=\max_k b_{d,k},
+\end{equation}
+其中 $T_{\mathrm{rt}}$ 为单车往返周转时间、$\kappa\eta$ 为单车有效载客量。式(\ref{eq:shuttle})的第二项是公开班距进入模型的唯一通道：$\tau$ 仅作为服务水平下限约束，不用于反推实际投入车辆数或单车实载量（假设 A7）。
+
+\textbf{人员。} 入口、停车与驾驶三类岗位分别换算。入口岗位按团体计服务对象、停车岗位按车辆计，第 $k$ 时段的在岗人数分别为
+\begin{equation}\label{eq:staff}
+N_{d,k}^{\mathrm{E}}=\left\lceil\frac{V_ds_k}{o\,H\,\mu_{\mathrm{E}}\upsilon}\right\rceil,\qquad
+N_{d,k}^{\mathrm{K}}=\left\lceil\frac{V_ds_k\alpha}{o\,H\,\mu_{\mathrm{K}}\upsilon}\right\rceil,
+\end{equation}
+其中 $\mu_{\mathrm{E}},\mu_{\mathrm{K}}$ 为单人小时服务能力、$\upsilon$ 为目标利用率；驾驶岗位的时段需求直接取式(\ref{eq:shuttle})的 $b_{d,k}$。三类岗位各自按早（覆盖时段 1--2）、中（覆盖 1--3）、晚（覆盖 2--3）三班求最小班次覆盖，加总得当日人员需求 $D_d^{N}$。在本文采用的时段占比下中班需求恰等于两侧之和，故最小班次由中间时段决定。
+
+上述三式的全部输入参数列于表\ref{tab:q3param}。以北戴河中位情景（$V_d=127{,}462$）为例：式(\ref{eq:parking})给出 $P_d=9{,}389$ 个泊位；式(\ref{eq:shuttle})给出 $\Lambda_{d,2}=1{,}593$ 人次/小时、$D_d^{B}=\max\{34,3\}=34$ 辆；式(\ref{eq:staff})给出入口、停车、驾驶三类班次 $178+79+34=291$ 班次。三者与表\ref{tab:q3result}的对应数值完全一致。
+
+\subsubsection{目标函数与离散求解}
+三类资源以覆盖率档位 $x_P,x_B,x_N\in\{0,0.2,0.4,0.6,0.8,1.0\}$ 决策，实际投入量与未满足需求分别为
+\begin{equation}
+p_d=\lceil P_d^{\mathrm{temp}}x_P\rceil,\qquad b_d=\lceil D_d^{B}x_B\rceil,\qquad n_d=\lceil D_d^{N}x_N\rceil,
+\end{equation}
+\begin{equation}\label{eq:gap}
+u_d^{P}=\max(P_d-P_d^{\mathrm{perm}}-p_d,\,0),\quad
+u_d^{B}=\max(D_d^{B}-b_d,\,0),\quad
+u_d^{N}=\max(D_d^{N}-n_d,\,0),
+\end{equation}
+其中常设泊位 $P_d^{\mathrm{perm}}$ 取已公开的具名节点容量；接驳与人员不设基线存量，全部由决策变量承担。
+
+由于三类资源量纲不同、不可直接加总，故先各自对其满覆盖需求标准化，再加权求和。相对投入成本与标准化服务缺口分别为
+\begin{equation}\label{eq:cost}
+C_d^{\mathrm{rel}}=0.6\,\frac{p_d}{\max(P_d^{\mathrm{temp}},1)}+1.2\,\frac{b_d}{\max(D_d^{B},1)}+\frac{n_d}{\max(D_d^{N},1)},
+\end{equation}
+\begin{equation}\label{eq:loss}
+e_d^{P}=\frac{u_d^{P}}{\max(P_d,1)},\qquad e_d^{B}=\frac{u_d^{B}}{\max(D_d^{B},1)},\qquad e_d^{N}=\frac{u_d^{N}}{\max(D_d^{N},1)},
+\end{equation}
+加权体验损失为 $E_d^{\mathrm{loss}}=0.9\,e_d^{P}+1.2\,e_d^{B}+e_d^{N}$。三项权重按缺口对游览体验的直接程度设定：接驳不足使游客滞留在途、无替代方案，权重最高；停车不足可由外围换乘部分承接，权重最低。目标函数为
+\begin{equation}\label{eq:objective}
+\min\ J_d=C_d^{\mathrm{rel}}+\lambda E_d^{\mathrm{loss}},\qquad \lambda=4.0.
+\end{equation}
+
+求解采用完全枚举：三类资源各六档，共 $6^3=216$ 个候选组合，逐一按式(\ref{eq:gap})--式(\ref{eq:objective})计算目标值，取最小者作为当日配置方案。由于候选解空间有限且被逐一评估，所得为该\textbf{离散解空间内的全局最优解}，不存在局部最优陷阱。
+
+\subsubsection{风险惩罚系数的稳健性}
+$\lambda$ 刻画管理者对服务缺口相对于资源投入的重视程度，其取值不来自实测台账，故需检验结论对它的依赖。注意到接驳的投入权重与缺口权重相等（均为 1.2），人员亦相等（均为 1.0），因此当 $\lambda>1$ 时增配一单位资源所消除的加权损失必大于其成本增量，最优解应整体转向满覆盖。对 $\lambda$ 的数值扫描印证了这一判断，结果见表\ref{tab:q3lambda}。
+
+\begin{table}[H]\centering\small
+\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
+\caption{风险惩罚系数 $\lambda$ 的权衡扫描（北戴河活动窗口）}\label{tab:q3lambda}
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lrrrr@{}}\toprule
+$\lambda$ 取值 & 相对成本 & 体验损失 & 接驳车辆（最大） & 人员班次（最大）\\ \midrule
+0.25 / 0.50 / 0.75 & 0.000 & 2.200 & 0 & 0\\
+1.00 & 0.298 & 1.902 & 8 & 101\\
+1.25 / 1.50 / 2.00 & 2.200 & 0.000 & 45 & 392\\ \bottomrule
+\end{tabular*}
+\end{table}
+
+$\lambda\le0.75$ 时模型完全不投入资源，$\lambda\ge1.25$ 后最优解恒为满覆盖且不再随 $\lambda$ 变化。本文取 $\lambda=4.0$，位于该平台区内部，因此\textbf{最优配置对 $\lambda$ 的具体取值不敏感}：如果管理者认为服务缺口比资源投入更应避免（即 $\lambda>1$），所得方案均相同。
+
+\subsubsection{游客时间损失的独立评估}
+须区分优化目标与结果评价指标。式(\ref{eq:objective})的求解只使用相对成本与标准化缺口，游客时间价值（VOT）\textbf{不参与}资源组合的选择，仅用于对既定方案的服务不足作事后货币化。本文以 2024 年秦皇岛城镇居民人均可支配收入 48,700 元\cite{qhdstat} 除以 2,000 小时得到中位 VOT 为 24.35 元/(人\,h)，并取 0.5、1.0、1.5 倍形成敏感性区间。时间损失按三个通道折算：未满足泊位的绕行延误 0.5 h/车、接驳等待 0.25 h/人次、服务排队 0.1 h/人次，三项延误时长同为情景参数。因此本文报告的时间损失金额是游客不便的情景估计，既不是运营方的现金支出，也不是问卷支付意愿（边界 B2）。
+
+\subsubsection{情景参数的来源与边界}
+资源换算涉及的参数分两类：一类是无本地调查支撑、只能以保守--中位--高压三档并列的\textbf{需求换算参数}，见表\ref{tab:q3param}；另一类是有公开来源但适用范围受限的\textbf{容量与班距锚点}，见表\ref{tab:q3anchor}。两类分开列出，以免将情景假设与公开事实混为一谈。表\ref{tab:q3param}给出式(\ref{eq:parking})--式(\ref{eq:staff})的全部输入，正文各资源数值均可据此复算。
+
+\begin{table}[H]\centering\small
+\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
+\caption{Q3 需求换算参数的三档取值}\label{tab:q3param}
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}p{3.6cm}ccc p{3.2cm}@{}}\toprule
+参数 & 保守 & 中位 & 高压 & 片区差异\\ \midrule
+私家车比例 $\alpha$ & 0.40--0.45 & 0.50--0.55 & 0.60--0.65 & 海港--阿那亚取下限\\
+平均同行人数 $o$（人/车） & 3.2 & 2.8 & 2.5 & 三区同值\\
+高峰到达比例 $\pi$ & 0.45 & 0.50 & 0.60 & 三区同值\\
+平均停留时长 $h$（h） & 2.5 & 3.0 & 3.5 & 三区同值\\
+高峰窗口 $H$（h） & 4 & 4 & 4 & 兼作单班时段长度\\
+时段占比 $s_1,s_2,s_3$ & \multicolumn{3}{c}{0.25 / 0.50 / 0.25} & 三区同值\\
+接驳分担率 $\gamma$ & 0.03--0.05 & 0.06--0.10 & 0.12--0.15 & 北戴河取上限\\
+单车座位数 $\kappa$（座） & 30 & 40 & 40 & 三区同值\\
+满载率 $\eta$ & 0.75 & 0.80 & 0.80 & 三区同值\\
+往返周转 $T_{\mathrm{rt}}$（min） & 35 & 40 & 50 & 三区同值\\
+最大班距 $\tau$（min） & \multicolumn{3}{c}{15（北戴河）/ 20（其余）} & 见表\ref{tab:q3anchor}\\
+入口服务率 $\mu_{\mathrm{E}}$（团/人\,h） & 40 & 40 & 40 & 三区同值\\
+停车服务率 $\mu_{\mathrm{K}}$（车/人\,h） & 50 & 50 & 50 & 三区同值\\
+目标利用率 $\upsilon$ & 0.80 & 0.80 & 0.80 & 三区同值\\ \bottomrule
+\end{tabular*}
+\end{table}
+
+表\ref{tab:q3param}中除时段占比外，其余参数均无本地出行调查或运营台账支撑，属显式情景假设（假设 A8）；三档取值遵循同一方向的单调收紧，即高压档同时提高私家车比例、缩小同行人数、延长停留时长与周转时间，故三档之间的差异可解释为需求强度的整体位移。
+
+\begin{table}[H]\centering\small
+\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
+\caption{Q3 容量与班距锚点的来源与使用边界}\label{tab:q3anchor}
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}p{2.9cm}p{2.3cm}p{2.0cm}p{4.2cm}@{}}\toprule
+参数 & 取值 & 来源性质 & 使用边界\\ \midrule
+北戴河接驳班距 & 日间 15 min & 公开运营事实\cite{bdhbus} & 暑期专线服务水平基准，进入式(\ref{eq:shuttle})\\
+外部班距参照 & 30 min & 公开运营事实\cite{shgbus,shgtravel} & 山海关站--景区，范围不同，不覆盖古城核心；模型改取 20 min\\
+点对点专车容量 & 7 人/次 & 官方披露\cite{aranya} & 仅阿那亚园区小型接驳，\textbf{未进入}本文接驳模型\\
+本地大型客车额定载客 & 72 / 84 / 92 人 & 车型公告 & 调研所得运力上界参照，\textbf{未进入}本文模型；模型统一采用 30/40 座的中小型接驳车情景\\
+北戴河常设泊位 & 10{,}000 / 13{,}000 & 历史公开参照 & 2017 年公共泊位网络规模，作规划可用量情景，非当前实测存量\\
+海港--阿那亚常设泊位 & 1{,}000 / 1{,}500 & 情景边界 & 无公开核心区泊位总量，取透明情景值\\
+山海关古城节点泊位 & 2{,}225 个 & 公开停车指南 & 五处具名停车场合计，不代表全区容量\\
+临时泊位 $P_d^{\mathrm{temp}}$ & 0 / 500 / 1{,}000 & 情景参数 & 仅高压情景开放；海港--阿那亚 500、山海关 1{,}000，北戴河不设\\
+时间价值 VOT & 24.35 元/(人\,h) & 统计年鉴派生\cite{qhdstat} & 仅事后货币化游客时间损失，\textbf{不进入}优化目标\\ \bottomrule
+\end{tabular*}
+\end{table}
+
+其中，北戴河 2024 年暑期旅游公交日间 15 分钟班距是全表唯一可直接进入模型的运营事实锚点\cite{bdhbus}；山海关火车站--景区入口的 30 分钟班距因空间范围不覆盖古城核心，仅作外部参照，模型另取 20 分钟作为规划约束\cite{shgbus,shgtravel}；阿那亚园区点对点专车的 7 人/次虽为官方直接披露\cite{aranya}，但其服务对象是园区内小型摆渡，与三区核心接驳不同量级，故未进入模型。本地大型客车 72/84/92 人的额定载客区间同属调研所得的运力上界参照，本文接驳模型统一采用 30/40 座的中小型车情景，取值更保守，由此得到的车辆需求偏多而非偏少（假设 A7）。
+
+停车占用报道未进入模型，因为其缺少与三区范围一致的连续逐时占用和泊位口径；已公开的具名节点泊位仅作为局部硬约束进入 $P_d^{\mathrm{perm}}$。
+
 
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
@@ -160,39 +473,121 @@ P_d=\left\lceil\frac{V_d\alpha}{o}\pi\frac{h}{H}\right\rceil.
 \end{tabular*}
 \end{table}
 
-表\ref{tab:q3result}中的外溢不是对新增停车供给的断言，而是应由外圈 P+R、预约、错峰或限流承接的管理需求。山海关 2,225 个具名古城节点泊位仅是局部硬约束，不代表全区总容量。
+表\ref{tab:q3result}中的外溢应由外圈 P+R、预约、错峰或限流承接，而非通过新增停车供给解决。
 
-将数值结果转为执行动作时，停车外溢日数大于零即触发外围 P+R、预约或分时入区；接驳约束紧张时优先增加备用车辆并缩短高峰班距；人员缺口则以中班增援覆盖入口、停车和驾驶三类岗位。该映射只说明资源何时应被调用，不把模型建议表述为已经发生的运营投入。
+将数值结果转为执行动作时，停车外溢日数大于零即触发外围 P+R、预约或分时入区；接驳约束紧张时优先增加备用车辆并缩短高峰班距；人员缺口则以中班增援覆盖入口、停车和驾驶三类岗位。该映射说明资源何时应被调用。
 
 \subsection{问题四：活动与降雨场景重优化}
-\subsubsection{模型更新与反事实求解}
-Q4 不另起一套资源模型，而是以 Q3 的基线日需求 $V_d$ 为起点，仅更新受扰动日的客流参数：大型活动使用 $V_d^{(c)}=V_d(1+g_d^{(c)})$ 描述预热--峰值--余波，连续降雨使用 $V_d^{(c)}=V_d(1-\rho_d^{(c)})$ 描述递进抑制；未受扰动日期保持基线值。将 $V_d^{(c)}$ 代入式(3)的需求换算和约束，得到 $x_d^{(c)}=(p_d^{(c)},b_d^{(c)},n_d^{(c)})$，并与固定基线方案 $x_d^{(0)}$ 比较最大服务缺口、资源成本和关键资源峰值。故 Q4 的差异可明确归因于场景需求更新，而非更换目标函数或评价口径。
+\subsubsection{扰动情景的参数化}
+Q4 沿用问题三的需求换算、目标函数与求解方式，只更新受扰动日期的游客规模，未受扰动日期保持基线值。因此两个场景与基线的全部差异均可归因于需求变化本身，而非模型设定的改变。
 
-对北戴河设置暑期大型活动的预热--峰值--余波扰动，对山海关设置连续五日降雨下的递进需求衰减。每个受扰日均与固定基线方案比较，并重新配置可变泊位、接驳和人员。
+\textbf{大型活动。} 以北戴河 2026 年 8 月 8 日为活动峰值日 $d_0$，用五日对称脉冲刻画预热--峰值--余波：
+\begin{equation}\label{eq:event}
+g_d^{(c)}=\iota\cdot\begin{cases}
+1.00, & d=d_0,\\
+0.50, & |d-d_0|=1,\\
+0.25, & |d-d_0|=2,\\
+0, & \text{其他日期},
+\end{cases}
+\qquad V_d^{(c)}=V_d\left(1+g_d^{(c)}\right),
+\end{equation}
+活动强度取 $\iota=0.40$。据此峰值日客流上浮 $40\%$，前后各一日上浮 $20\%$，前后各二日上浮 $10\%$，扰动窗口为 8 月 6 日至 8 月 10 日。
+
+\textbf{连续降雨。} 以山海关 2026 年 7 月 15 日为降雨起始日，设置连续五日的逐日累积衰减：
+\begin{equation}\label{eq:rain}
+V_{d_0+k}^{(c)}=V_{d_0+k}\left[1-(k+1)\rho\right]^{+},\qquad k=0,1,\ldots,4,
+\end{equation}
+日均衰减系数取 $\rho=0.12$，即首日客流下降 $12\%$、末日累计下降 $60\%$，$[\cdot]^{+}$ 表示非负截断。该量级与问题二的天气突变分析相容：强降雨情景下生效日客流平均下降 $30.33\%$，恰位于本文五日累积衰减的中段。
+
+\subsubsection{两个评价口径的区分}
+比较基线方案与重优化方案时使用两个\textbf{不同权重}的指标，二者存在如下差异。
+
+\textbf{等权服务缺口指数} $G_d$ 衡量固定基线方案在扰动下的不适配程度，对三类资源等权处理：
+\begin{equation}\label{eq:gapindex}
+G_d=\frac{1}{3}\left(\frac{[P_d^{(c)}-P_d^{\mathrm{perm}}-P_d^{\mathrm{temp}}]^{+}}{\max(P_d^{(c)},1)}+\frac{[D_d^{B,(c)}-b_d^{(0)}]^{+}}{\max(D_d^{B,(c)},1)}+\frac{[D_d^{N,(c)}-n_d^{(0)}]^{+}}{\max(D_d^{N,(c)},1)}\right),
+\end{equation}
+其中带 $(0)$ 上标者为未经调整的基线配置。\textbf{加权体验损失} $E_d^{\mathrm{loss}}$ 即式(\ref{eq:loss})，是重优化的目标分量，三类缺口按 $0.9:1.2:1.0$ 加权。
+
+$G_d$ 量化不调整基线方案时扰动造成的服务缺口程度，$E_d^{\mathrm{loss}}$ 则衡量经重优化后仍无法消除的剩余体验损失。二者权重不同。
+
+\subsubsection{重优化结果}
+每个受扰日均以式(\ref{eq:objective})在 216 个候选组合中重新求解，结果见表\ref{tab:q4result}。
 
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
-\caption{反事实场景的重优化结果}\label{tab:q4result}
+\caption{反事实场景的重优化结果（全年口径）}\label{tab:q4result}
 \begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lccccc@{}}\toprule
-场景 & \shortstack{基线最大\\服务缺口} & \shortstack{资源\\成本} & \shortstack{服务\\损失} & \shortstack{接驳车辆\\（最大）} & \shortstack{人员班次\\（最大）}\\ \midrule
-活动冲击 & 0.183 & 2.200 & 0.000 & 45 & 392\\
-连续降雨 & 0.259 & 2.200 & 0.099 & 22 & 295\\ \bottomrule
+场景 & \shortstack{基线最大缺口\\指数 $G_d$} & \shortstack{重优化\\相对成本} & \shortstack{重优化体验\\损失 $E^{\mathrm{loss}}$} & \shortstack{接驳车辆\\（最大）} & \shortstack{人员班次\\（最大）}\\ \midrule
+活动冲击（北戴河 8/6--8/10） & 0.183 & 2.200 & 0.000 & 45 & 392\\
+连续降雨（山海关 7/15--7/19） & 0.259 & 2.200 & 0.099 & 22 & 295\\ \bottomrule
 \end{tabular*}
 \end{table}
 
-灵敏度排序显示，接驳分担率、活动强度和私家车比例最影响最大服务缺口。因此活动前两日应根据预售和热度启动 P+R、备用接驳与中班增援；降雨情景则应收缩可变运力，但保留排水、应急引导、咨询和无障碍交通的最低班组。以中位 VOT 计，8 月 8 日活动冲击下固定基线方案的最大游客时间损失为 146,996 元，重优化后降为 0；该数为情景时间损失估计，不是运营现金流或游客赔付。图\ref{fig:q4sensitivity}给出五项情景参数对最大服务缺口的影响排序。
+活动冲击下，基线方案的最大缺口指数为 0.183，重优化后加权体验损失降至 0，表明北戴河活动窗口内的缺口可完全由既有资源池的重新调度消除，无需新增设施：接驳车辆由基线的 34 辆增至 45 辆、人员由 291 增至 392 班次，增幅分别为 32.4\% 与 34.7\%，与 40\% 的活动强度大体相称。
+
+连续降雨一行需分开解读。表中 0.259 是山海关\textbf{全年}的基线最大缺口指数，其来源是该片区常设泊位 2,225 个远低于中位情景 9,980 个的峰值需求，属全年性的容量不足，\textbf{与降雨无关}。降雨窗口内的缺口反而随衰减加深而下降：$\rho=0.06$ 时窗口内最大缺口指数为 0.213，$\rho=0.18$ 时降至 0.139。这直接印证降雨情景的主要矛盾是运力冗余而非不足，调整方向应为收缩可变运力而非增补。重优化后残余的 0.099 体验损失同样全部来自停车——中位情景不开放临时泊位，停车缺口无法在现有容量内消除，只能由外围 P+R 与分时入城承接。
+
+\subsubsection{参数扰动与稳定性}
+对五项情景参数各取低--高两个取值重新求解，以基线最大缺口指数的变化幅度排序，结果见表\ref{tab:q4sens}与图\ref{fig:q4sensitivity}。
+
+\begin{table}[H]\centering\small
+\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
+\caption{情景参数的一次一变扰动排序}\label{tab:q4sens}
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}clccrrr@{}}\toprule
+排序 & 参数 & 低值 & 高值 & 低值 $G$ & 高值 $G$ & 影响幅度\\ \midrule
+1 & 接驳分担率 $\gamma$ & 0.05 & 0.15 & 0.080 & 0.279 & 0.199\\
+2 & 活动强度 $\iota$ & 0.20 & 0.60 & 0.107 & 0.282 & 0.175\\
+3 & 私家车比例 $\alpha$ & 0.40 & 0.70 & 0.165 & 0.265 & 0.100\\
+4 & 平均停留时长 $h$ & 2.0 & 4.0 & 0.183 & 0.261 & 0.078\\
+5 & 降雨衰减系数 $\rho$ & 0.06 & 0.18 & 0.213 & 0.139 & 0.074\\ \bottomrule
+\end{tabular*}
+\end{table}
+
+前四项为正向影响，第五项为负向。接驳分担率居首，说明服务缺口对"有多少游客需要换乘"最敏感，而这恰是本文最缺乏本地调查支撑的参数之一——它同时是最影响结论的参数和最不确定的参数，构成本模型的主要脆弱点，也是后续实地调查应优先补齐的对象。活动强度居次，说明预案的关键在于活动前的规模预判而非事后调度。降雨衰减系数为唯一负向且幅度最小的一项，再次确认降雨不构成资源压力的来源。
+
+据此，活动前两日应根据预售与网络热度启动外圈 P+R、备用接驳与中班增援；降雨情景则应收缩可变运力，但须保留排水、应急引导、咨询与无障碍交通的最低班组。以中位 VOT 计，8 月 8 日活动峰值日固定基线方案的游客时间损失估计为 146,996 元，重优化后降为 0；该金额是游客不便的情景折算，不表示运营方的实际支出（边界 B2）。
 \begin{figure}[H]\centering
 \includegraphics[width=.80\textwidth]{q4_sensitivity_ranking.png}
-\caption{情景参数对最大服务缺口的影响排序}\label{fig:q4sensitivity}
+\caption{情景参数对最大服务缺口指数的影响排序}\label{fig:q4sensitivity}
 \end{figure}
 
 \section{模型分析与检验}
-年度预测以留出法比较三种基准，近期中位增长法的年度 sMAPE 为 24.67\%；日级部分以 149 条去重片区--日期观测为留出集，动态 Ridge 的 MAE、RMSE 和 sMAPE 分别为 0.918、1.504 和 64.30\%，并以分片区 split-conformal 校准得到 0.899 的区间覆盖率。问题三对全部资源结果保留量纲和情景参数，问题四以反事实基线比较服务缺口，并通过五项参数扰动给出敏感性排序。因此，检验对象分别对应预测误差、区间覆盖、约束可行性和情景稳健性，而不把范围不一致的外部报道混入误差计算。
+年度预测以留出法比较三种基准，近期中位增长法的年度 sMAPE 为 24.67\%；日级部分以 149 条去重片区--日期观测为留出集，动态 Ridge 的 MAE、RMSE 和 sMAPE 分别为 0.918、1.504 和 64.30\%，并以分片区 split-conformal 校准得到 0.899 的区间覆盖率。问题三对全部资源结果保留量纲和情景参数，并对目标函数中唯一无实测依据的风险惩罚系数作扫描检验：$\lambda\ge1.25$ 后最优解恒定，本文取值 $\lambda=4.0$ 位于该平台区内。问题四以反事实基线比较等权服务缺口指数，并通过五项参数扰动给出敏感性排序。四项检验分别对应预测误差、区间覆盖、目标函数参数稳健性与情景稳健性；范围不一致的外部报道不计入误差计算。
 
 \section{模型评价、改进与推广}
-本文的优点在于：将官方年度总量与片区日级相对信息分层使用；使停车、车辆、人员保持独立单位；把无法证实的运营数据显式保留为情景参数；并以重优化提供可执行的预案。局限在于缺少连续真实入园量、逐时停车占用、车辆调度与实际成本台账，因而日级游客规模和资源配置均为锚点约束估计或情景规划值。
+\subsection{模型优点}
+\begin{enumerate}[label=\textbf{（\arabic*）},leftmargin=2.6em,itemsep=3pt]
+\item\textbf{缺失机制被正确识别并转化为信息。} 景区榜单的缺失为非随机缺失，本文以左删失似然处理，使原本被丢弃的 95.6\% 的 (景区$\times$日) 组合转为有效的负向信息。若按随机缺失处理，淡季因缺少低值观测将被系统性高估、季节振幅被压缩——这会直接削弱本文关于片区峰谷比差异的核心发现。
+\item\textbf{不确定性按片区分别校准。} 三区的 split-conformal 相对半径分别为 0.592、0.670 与 1.572，差异达 2.7 倍。若沿用全局单一半径，波动性最低与最高的片区将被赋予相同的相对不确定性，从而抹平片区异质性这一关键结论。校准后区间覆盖率为 0.899，接近并略高于名义水平。
+\item\textbf{设置朴素基准与消融实验双重对照。} 年度尺度上朴素的近期中位增长法（sMAPE 24.67\%）优于参数化对数趋势，本文据此采用朴素法；日级尺度上动态 Ridge 相对历史星期中位数确有改善，且通过消融实验分离出日历因素与动态协变量的各自贡献，避免将季节性效应归因于天气与热度变量的作用。
+\item\textbf{各类资源保持独立量纲，不做跨量纲加总。} 停车以泊位计、接驳以车辆计、人员以班次计，分别在各自容量约束下求解；进入目标函数前各项先对其满覆盖需求标准化，故加权求和的是无量纲比率而非原始数量。游客体验损耗则以时间价值单独货币化为“元”，完全独立于优化目标之外，避免了“准确率加金额加比率”式的量纲灾难。
+\item\textbf{全部无法证实的运营参数被显式保留为情景变量。} 私家车比例、同行人数、单车运力、满载率等均标注取值依据与适用边界，并在保守--中位--高压三档下给出结果。
+\item\textbf{结果可完整复现且经回归检验。} 主线脚本一次运行即可重建四问全部产物，配套 107 项回归测试覆盖删失似然、预测校准、资源换算与情景重优化四个环节；正文各表数值均可由对应产出表逐项核对，式(\ref{eq:parking})与式(\ref{eq:shuttle})的输入参数已全部在表\ref{tab:q3param}中列明，可独立复算。
+\end{enumerate}
 
-综上，秦皇岛旅游管理应以暑期预配置、节假日动态调度和突发事件预案为主线。北戴河需优先保证旅游专线班距；海港--阿那亚需加强预约、停车和住宿的统一日台账；山海关应把古城节点饱和转化为外圈换乘和分时入城策略。获得实时闸机、停车诱导、调度和订单数据后，可将模型升级为小时级滚动优化。
+\subsection{模型缺点}
+\begin{enumerate}[label=\textbf{（\arabic*）},leftmargin=2.6em,itemsep=3pt]
+\item\textbf{山海关的区间校准样本不足。} 该片区可用校准样本仅 27 条，导致相对半径达 1.572，$q_{10}$ 在非负截断后取零。该零值由区间宽度与非负截断导致，不表示零需求，但确实削弱了下界的决策价值。
+\item\textbf{时序分解中季节项被趋势项吸收。} 31 日中心移动平均的窗口短于年周期，年内循环并入趋势项，故“季节项”仅反映月内日历效应，其 0.6\% 的方差占比不能解读为季节性弱。
+\item\textbf{资源投入成本为相对量。} 本地缺少人力单价、车辆运营与场站运维台账，故除游客时间损失外，资源侧成本只能以相对强度呈现，无法给出真实预算数额。
+\item\textbf{缺少连续的运营实测基础。} 无逐时入园计数、逐时停车占用率与车辆调度台账，因而日级游客规模与资源配置均为锚点约束估计或情景规划值，其绝对水平的验证依赖于后续实地数据。
+\end{enumerate}
+
+\subsection{结论适用边界}
+为避免结果被超范围引用，明确以下五条边界：
+
+\begin{enumerate}[label=\textbf{B\arabic*.},leftmargin=3.0em,itemsep=2pt]
+\item 日级客流、资源规模与成本均为锚点约束估计或情景规划量；
+\item 相对成本与标准化服务损失不得直接换算为人民币金额或问卷满意度得分；Q3 的加权体验损失 $E_d^{\mathrm{loss}}$ 与 Q4 的等权服务缺口指数 $G_d$ 权重不同；
+\item 山海关 $q_{10}=0$ 表示宽区间在非负截断后的下界；
+\item 北戴河的历史停车参考与山海关古城节点容量为局部数值；
+\end{enumerate}
+
+\subsection{改进与推广}
+模型的改进方向与数据可得性直接对应。\textbf{短期}可通过现场抽样补齐关键缺口：利用北戴河已建成的停车诱导屏与实时余位显示系统，在固定时点人工记录总泊位与剩余泊位，即可形成真实占用率序列，使 Q3 的容量触发从情景判断转为实测校验；同时扩大山海关的观测采集以缓解其校准样本不足。\textbf{中期}在获得实时闸机、停车诱导、车辆调度与订单数据后，可将日级配置升级为小时级滚动优化，并把当前的离散档位搜索替换为带时段约束的整数规划。\textbf{长期}则可将本文“绝对尺度锚定--相对形态识别--缺失机制建模--分片区区间校准”的框架迁移至其他统计口径不齐的目的地城市。
+
+综上，秦皇岛旅游管理应以暑期预配置、节假日动态调度和突发事件预案为主线。北戴河需优先保证旅游专线班距；海港--阿那亚需加强预约、停车和住宿的统一日台账；山海关应把古城节点饱和转化为外圈换乘和分时入城策略。
+
 
 \begin{thebibliography}{9}
 \bibitem{qhdstat} 秦皇岛市统计局. 《秦皇岛市国民经济和社会发展统计公报》[EB/OL]. 项目原始数据登记表所列 2002--2024 年官方年度游客量来源.
@@ -203,10 +598,864 @@ Q4 不另起一套资源模型，而是以 Q3 的基线日需求 $V_d$ 为起点
 \end{thebibliography}
 
 \begin{appendices}
-\section{数据与复现说明}
-全部输入口径、参数边界与生成结果保存在项目的 \texttt{data}、\texttt{outputs} 和“论文写作”目录。运行 \texttt{scripts/run\_paper\_mainline.py} 可重建主线输出，运行 \texttt{pytest -q} 可执行回归测试。主线仅在 Q1--Q4 检查点均齐全时刷新 \texttt{outputs/verified\_artifacts}；若运行失败，\texttt{outputs/delivery\_status.json} 会指定已验证产物版，禁止混用失败运行的新表。公开网页来源及数据适用边界详见数据登记表与封稿核验文件。
+\section{问题一代码}
 
-问题二可复核表为 \url{q2_daily_rolling_origin_validation.csv}（位于 \url{outputs/question2_analysis}）。其固定尝试 2024-01-01、2024-04-01、2024-07-01 三个原点和 92 日窗口；原点前的数据才可进入训练、游客指数--压力尺度换算与 split-conformal 校准。若某窗口去重后少于 20 条锚点观测，则不输出该窗口，而不以插补值补足。动态日模型只使用日历、当期天气和预先滞后的搜索变量，不使用 \texttt{target\_lag\_1} 或任何未来游客量。滚动检验中的天气与搜索量是已实现协变量，仅用于条件检验；2026 年预测改用预预测期按月日构造的气候情景。
+\noindent\texttt{src/models/hierarchical\_censored\_pressure.py}
+\begin{lstlisting}[style=pysrc]
+def negative_log_posterior(params: dict[str, object], data: dict[str, object], lambda_alpha: float = 0.1) -> float:
+    """Evaluate observed normal density plus grouped left-censored normal probability."""
+    groups = data["groups"]
+    observed = data["observed"]
+    eta = np.asarray(params["group_eta"], dtype=float)
+    alpha = np.asarray(params["attraction_alpha"], dtype=float)
+    sigma = float(np.exp(float(params["log_sigma"])))
+    if len(eta) != len(groups) or sigma <= 0:
+        return float("inf")
+    observed_attraction_id = observed["attraction_id"].to_numpy(dtype=int)
+    if len(alpha) <= observed_attraction_id.max(initial=-1):
+        observed_attraction_id = pd.factorize(observed["attraction_name"], sort=True)[0]
+    observed_mean = eta[observed["group_id"].to_numpy(dtype=int)] + alpha[observed_attraction_id]
+    z = observed["observed_log_index"].to_numpy(dtype=float)
+    density_nll = float(np.sum(0.5 * ((z - observed_mean) / sigma) ** 2 + np.log(sigma * np.sqrt(2 * np.pi))))
+    threshold = groups["threshold_log"].to_numpy(dtype=float)
+    standardized = (threshold - eta) / sigma
+    cdf = 0.5 * (1 + np.vectorize(__import__("math").erf)(standardized / np.sqrt(2)))
+    censor_nll = float(-np.sum(groups["censored_count"].to_numpy(dtype=float) * np.log(np.maximum(cdf, 1e-12))))
+    return density_nll + censor_nll + lambda_alpha * float(np.sum(alpha**2))
+
+
+def fit_censored_pressure_core(data: dict[str, object]) -> dict[str, object]:
+    """Fit sampled-day latent pressures with attraction effects and left-censor likelihood."""
+    group_count = int(data["group_count"])
+    attraction_count = int(data["attraction_count"])
+    initial = np.zeros(group_count + attraction_count + 1)
+    initial[-1] = 0.0
+
+    def objective(vector: np.ndarray) -> float:
+        params = {"group_eta": vector[:group_count], "attraction_alpha": vector[group_count:-1], "log_sigma": vector[-1]}
+        return negative_log_posterior(params, data)
+
+    def gradient(vector: np.ndarray) -> np.ndarray:
+        eta, alpha, log_sigma = vector[:group_count], vector[group_count:-1], vector[-1]
+        sigma = np.exp(log_sigma); groups, obs = data["groups"], data["observed"]
+        gids = obs["group_id"].to_numpy(int); aids = obs["attraction_id"].to_numpy(int); z = obs["observed_log_index"].to_numpy(float)
+        residual = eta[gids] + alpha[aids] - z
+        g_eta = np.bincount(gids, weights=residual / sigma**2, minlength=group_count)
+        g_alpha = np.bincount(aids, weights=residual / sigma**2, minlength=attraction_count) + 0.2 * alpha
+        q = (groups["threshold_log"].to_numpy(float) - eta) / sigma
+        pdf = np.exp(-0.5*q*q) / np.sqrt(2*np.pi)
+        cdf = np.maximum(0.5*(1 + np.vectorize(__import__('math').erf)(q/np.sqrt(2))), 1e-12)
+        hazard = pdf / cdf; counts = groups["censored_count"].to_numpy(float)
+        g_eta += counts * hazard / sigma
+        g_log_sigma = np.sum(1 - (residual/sigma)**2) + np.sum(counts * hazard * q)
+        return np.r_[g_eta, g_alpha, g_log_sigma]
+
+    fit = minimize(objective, initial, jac=gradient, method="L-BFGS-B", bounds=[(None, None)] * (len(initial) - 1) + [(-4, 4)], options={"maxiter": 2000, "maxfun": 100000})
+    sampled_pressure = data["groups"].loc[:, ["date", "region_code"]].copy()
+    sampled_pressure["pressure_index"] = np.maximum(np.expm1(fit.x[:group_count]), 0.0)
+    sampled_pressure["estimate_label"] = "censored_likelihood_pressure_index"
+    return {"converged": bool(fit.success), "group_eta": fit.x[:group_count], "attraction_alpha": fit.x[group_count:-1], "log_sigma": float(fit.x[-1]), "objective": float(fit.fun), "message": fit.message, "sampled_pressure": sampled_pressure}
+
+
+def fit_hierarchical_censored_pressure(
+    data: dict[str, object], lambda_alpha: float = 0.1, lambda_dynamic: float = 0.25,
+    lambda_beta: float = 0.05, lambda_region: float = 0.05,
+) -> dict[str, object]:
+    """Jointly estimate covariates, region effects and AR-constrained sampled residuals."""
+    group_count, attraction_count, region_count = int(data["group_count"]), int(data["attraction_count"]), int(data["region_count"])
+    if group_count == 0:
+        raise ValueError("no sampled groups available for hierarchical fit")
+    x = np.column_stack([np.ones(group_count), np.asarray(data["standardized_features"], dtype=float)])
+    feature_names = ["intercept", *list(data["feature_names"])]
+    p = x.shape[1]
+    groups, observed, censored = data["groups"], data["observed"], data["censored"]
+    group_region = groups["region_id"].to_numpy(dtype=int)
+    obs_g = observed["group_id"].to_numpy(dtype=int); obs_a = observed["attraction_id"].to_numpy(dtype=int); obs_z = observed["observed_log_index"].to_numpy(dtype=float)
+    cen_g = censored.get("group_id", pd.Series(dtype=int)).to_numpy(dtype=int); cen_a = censored.get("attraction_id", pd.Series(dtype=int)).to_numpy(dtype=int); cen_threshold = censored.get("threshold_log", pd.Series(dtype=float)).to_numpy(dtype=float)
+    attraction_region = np.asarray(data["attraction_region"], dtype=int)
+    previous = np.full(group_count, -1, dtype=int)
+    for _, frame in groups.sort_values(["region_code", "date"]).groupby("region_code", sort=False):
+        identifiers = frame["group_id"].to_numpy(dtype=int)
+        if len(identifiers) > 1:
+            previous[identifiers[1:]] = identifiers[:-1]
+
+    core = fit_censored_pressure_core(data)
+    target = np.asarray(core["group_eta"], dtype=float)
+    design = np.column_stack([x, pd.get_dummies(group_region, dtype=float).to_numpy()[:, 1:]])
+    coefficients = np.linalg.pinv(design) @ target
+    beta0 = coefficients[:p]; region0 = np.r_[0.0, coefficients[p:]]
+    residual0 = target - x @ beta0 - region0[group_region]
+    initial = np.r_[beta0, region0[1:], residual0, np.zeros(attraction_count), np.repeat(float(core["log_sigma"]), region_count), 0.0]
+    b_start, u_start = p, p + region_count - 1
+    a_start, sigma_start, rho_index = u_start + group_count, u_start + group_count + attraction_count, u_start + group_count + attraction_count + region_count
+
+    def unpack(vector: np.ndarray):
+        beta = vector[:p]
+        regional = np.r_[0.0, vector[b_start:u_start]]
+        u = vector[u_start:a_start]
+        raw_alpha = vector[a_start:sigma_start]
+        alpha = raw_alpha.copy()
+        for region_id in range(region_count):
+            mask = attraction_region == region_id
+            if mask.any(): alpha[mask] -= alpha[mask].mean()
+        sigma = np.exp(vector[sigma_start:rho_index])
+        rho = np.tanh(vector[rho_index])
+        eta = x @ beta + regional[group_region] + u
+        return beta, regional, u, raw_alpha, alpha, sigma, rho, eta
+
+    def objective_gradient(vector: np.ndarray):
+        beta, regional, u, raw_alpha, alpha, sigma, rho, eta = unpack(vector)
+        sigma_group = sigma[group_region]
+        residual = eta[obs_g] + alpha[obs_a] - obs_z
+        value = float(np.sum(0.5 * (residual / sigma_group[obs_g]) ** 2 + np.log(sigma_group[obs_g] * np.sqrt(2 * np.pi))))
+        g_eta = np.bincount(obs_g, weights=residual / sigma_group[obs_g] ** 2, minlength=group_count)
+        g_alpha = np.bincount(obs_a, weights=residual / sigma_group[obs_g] ** 2, minlength=attraction_count)
+        g_log_sigma = np.bincount(group_region[obs_g], weights=1 - (residual / sigma_group[obs_g]) ** 2, minlength=region_count)
+        if len(cen_g):
+            q = (cen_threshold - eta[cen_g] - alpha[cen_a]) / sigma_group[cen_g]
+            log_cdf = log_ndtr(q)
+            value -= float(np.sum(log_cdf))
+            log_pdf = -0.5 * q * q - 0.5 * np.log(2 * np.pi)
+            hazard = np.exp(np.minimum(log_pdf - log_cdf, 50.0))
+            contribution = hazard / sigma_group[cen_g]
+            g_eta += np.bincount(cen_g, weights=contribution, minlength=group_count)
+            g_alpha += np.bincount(cen_a, weights=contribution, minlength=attraction_count)
+            g_log_sigma += np.bincount(group_region[cen_g], weights=hazard * q, minlength=region_count)
+        value += lambda_alpha * float(np.sum(alpha ** 2)) + lambda_beta * float(np.sum(beta[1:] ** 2)) + lambda_region * float(np.sum(regional[1:] ** 2))
+        g_alpha += 2 * lambda_alpha * alpha
+        g_beta = x.T @ g_eta; g_beta[1:] += 2 * lambda_beta * beta[1:]
+        g_region = np.bincount(group_region, weights=g_eta, minlength=region_count); g_region[1:] += 2 * lambda_region * regional[1:]
+        g_u = g_eta.copy(); g_rho = 0.0
+        current = np.flatnonzero(previous >= 0)
+        if len(current):
+            prior = previous[current]; dynamic_residual = u[current] - rho * u[prior]
+            value += lambda_dynamic * float(np.sum(dynamic_residual ** 2))
+            g_u[current] += 2 * lambda_dynamic * dynamic_residual
+            g_u[prior] -= 2 * lambda_dynamic * rho * dynamic_residual
+            g_rho = float(np.sum(-2 * lambda_dynamic * dynamic_residual * u[prior]) * (1 - rho ** 2))
+        centered_alpha_gradient = g_alpha.copy()
+        for region_id in range(region_count):
+            mask = attraction_region == region_id
+            if mask.any(): centered_alpha_gradient[mask] -= centered_alpha_gradient[mask].mean()
+        gradient = np.r_[g_beta, g_region[1:], g_u, centered_alpha_gradient, g_log_sigma, g_rho]
+        return value, gradient
+
+    def objective(vector: np.ndarray) -> float:
+        return objective_gradient(vector)[0]
+
+    def gradient(vector: np.ndarray) -> np.ndarray:
+        return objective_gradient(vector)[1]
+
+    bounds = [(None, None)] * len(initial)
+    for index in range(sigma_start, rho_index): bounds[index] = (-4.0, 4.0)
+    fit = minimize(objective, initial, jac=gradient, method="L-BFGS-B", bounds=bounds, options={"maxiter": 3000, "maxfun": 150000, "ftol": 1e-9})
+    beta, regional, u, raw_alpha, alpha, sigma, rho, eta = unpack(fit.x)
+    sampled = groups.loc[:, ["date", "region_code"]].copy()
+    sampled["pressure_index"] = np.maximum(np.expm1(eta), 0.0)
+    sampled["estimate_label"] = "censored_likelihood_pressure_index"
+    diagnostics = pd.concat([
+        pd.DataFrame({"parameter_group": "covariate", "parameter": feature_names, "estimate_standardized": beta}),
+        pd.DataFrame({"parameter_group": "region_effect", "parameter": data["region_names"], "estimate_standardized": regional}),
+        pd.DataFrame({"parameter_group": "dispersion", "parameter": data["region_names"], "estimate_standardized": sigma}),
+        pd.DataFrame({"parameter_group": ["dynamic"], "parameter": ["rho_adjacent_sample"], "estimate_standardized": [rho]}),
+    ], ignore_index=True)
+    return {"converged": bool(fit.success) and bool(np.all(sigma > 0)), "objective": float(fit.fun), "message": str(fit.message), "sampled_pressure": sampled, "parameter_diagnostics": diagnostics, "group_eta": eta, "covariate_beta": beta, "region_effect": regional, "attraction_alpha": alpha, "regional_sigma": sigma, "rho": float(rho), "feature_names": list(data["feature_names"]), "feature_mean": np.asarray(data["feature_mean"], dtype=float), "feature_std": np.asarray(data["feature_std"], dtype=float), "region_names": list(data["region_names"])}
+\end{lstlisting}
+
+
+\noindent\texttt{src/analysis/q1\_timeseries.py}
+\begin{lstlisting}[style=pysrc]
+def construct_annual_constrained_city_daily_series(
+    regional_estimates: pd.DataFrame, annual_totals: pd.DataFrame,
+    annual_value_column: str = "数值",
+) -> pd.DataFrame:
+    """Scale the three-core-area daily shape to each available official annual total."""
+    _require_columns(regional_estimates, {"date", "region_code", "visitor_estimate_baseline"})
+    _require_columns(annual_totals, {"year", annual_value_column})
+    regional = regional_estimates.loc[:, ["date", "region_code", "visitor_estimate_baseline"]].copy()
+    regional["date"] = pd.to_datetime(regional["date"], errors="raise")
+    regional["visitor_estimate_baseline"] = pd.to_numeric(regional["visitor_estimate_baseline"], errors="raise").clip(lower=0)
+    daily = regional.groupby("date", as_index=False)["visitor_estimate_baseline"].sum().rename(columns={"visitor_estimate_baseline": "three_region_daily_shape"})
+    daily["year"] = daily["date"].dt.year
+    official = annual_totals.loc[:, ["year", annual_value_column]].copy()
+    official["year"] = pd.to_numeric(official["year"], errors="raise").astype(int)
+    official["official_annual_tourists_thousand"] = pd.to_numeric(official[annual_value_column], errors="raise")
+    daily = daily.merge(official.loc[:, ["year", "official_annual_tourists_thousand"]], on="year", how="inner")
+    annual_shape = daily.groupby("year")["three_region_daily_shape"].transform("sum")
+    if annual_shape.le(0).any():
+        raise ValueError("regional annual shape must be positive for every constrained year")
+    daily["annual_scale_factor"] = daily["official_annual_tourists_thousand"] * 1000 / annual_shape
+    daily["city_daily_visitor_estimate"] = daily["three_region_daily_shape"] * daily["annual_scale_factor"]
+    daily["estimate_label"] = "annual_anchor_constrained_city_daily_estimate"
+    daily["series_scope"] = "citywide_daily_estimate__official_annual_total_constrained__three_core_regions_supply_shape"
+    return daily.loc[:, ["date", "year", "three_region_daily_shape", "official_annual_tourists_thousand", "annual_scale_factor", "city_daily_visitor_estimate", "estimate_label", "series_scope"]].sort_values("date").reset_index(drop=True)
+\end{lstlisting}
+
+
+\noindent\texttt{src/features/search\_features.py}
+\begin{lstlisting}[style=pysrc]
+def build_search_theme_features(frame: pd.DataFrame) -> pd.DataFrame:
+    """Return annual-standardized, non-weather A/B search-theme factors and lags."""
+    missing = _REQUIRED.difference(frame.columns)
+    if missing:
+        raise ValueError(f"missing required columns: {sorted(missing)}")
+
+    data = frame.copy()
+    data["date"] = pd.to_datetime(data["date"], errors="coerce")
+    data["search_index"] = pd.to_numeric(data["search_index"], errors="coerce")
+    for column in ["keyword", "quality_grade", "theme"]:
+        data[column] = data[column].astype("string").str.strip()
+    is_weather = data["theme"].str.lower().eq("weather") | data["keyword"].str.contains("天气", na=False)
+    data = data.loc[
+        data["date"].notna()
+        & data["search_index"].notna()
+        & data["quality_grade"].isin(["A", "B"])
+        & ~is_weather
+    ].copy()
+    if data.empty:
+        return pd.DataFrame(columns=["date", "source_keyword_count"])
+
+    data["year"] = data["date"].dt.year
+    group = data.groupby(["keyword", "year"])["search_index"]
+    mean = group.transform("mean")
+    std = group.transform("std").fillna(0)
+    data["annual_z"] = ((data["search_index"] - mean) / std.where(std.ne(0), 1)).fillna(0)
+
+    theme_daily = (
+        data.groupby(["date", "theme"], as_index=False)["annual_z"]
+        .mean()
+        .pivot(index="date", columns="theme", values="annual_z")
+        .rename(columns=lambda theme: f"theme_{theme}")
+        .reset_index()
+        .sort_values("date")
+        .reset_index(drop=True)
+    )
+    counts = data.groupby("date")["keyword"].nunique().rename("source_keyword_count").reset_index()
+    result = theme_daily.merge(counts, on="date", how="left")
+    theme_columns = [column for column in result.columns if column.startswith("theme_")]
+    for column in theme_columns:
+        result[f"{column}_lag_1"] = result[column].shift(1)
+        result[f"{column}_lag_2"] = result[column].shift(2)
+        result[f"{column}_lag_3"] = result[column].shift(3)
+        result[f"{column}_lag_7"] = result[column].shift(7)
+    return result
+\end{lstlisting}
+
+\section{问题二代码}
+
+\noindent\texttt{src/models/question2\_forecasting.py}
+\begin{lstlisting}[style=pysrc]
+def annual_rolling_origin_splits(years: Iterable[int], min_train_years: int = 8) -> list[tuple[int, int, int]]:
+    """Return chronological (first_train_year, last_train_year, target_year) splits."""
+    unique_years = sorted({int(year) for year in years})
+    if min_train_years < 2:
+        raise ValueError("min_train_years must be at least 2")
+    return [
+        (unique_years[0], unique_years[target_index - 1], unique_years[target_index])
+        for target_index in range(min_train_years, len(unique_years))
+    ]
+
+
+def _annual_candidate_point(train: pd.DataFrame, value_column: str, target_year: int, candidate: str) -> float:
+    ordered = train.loc[:, ["year", value_column]].copy().sort_values("year")
+    values = pd.to_numeric(ordered[value_column], errors="raise").to_numpy(dtype=float)
+    if candidate == "weighted_log_trend":
+        return forecast_annual_total(fit_annual_log_trend(ordered, value_column), target_year)["point"]
+    if candidate == "last_year_naive":
+        return float(values[-1])
+    if candidate == "recent_median_growth":
+        growth = values[1:] / values[:-1]
+        return float(values[-1] * np.median(growth[-min(3, len(growth)):]))
+    raise ValueError(f"unknown annual candidate: {candidate}")
+
+
+def evaluate_annual_candidates(annual: pd.DataFrame, value_column: str, min_train_years: int = 8) -> pd.DataFrame:
+    """Score interpretable annual candidates by strictly forward rolling forecasts."""
+    frame = annual.loc[:, ["year", value_column]].copy()
+    frame["year"] = pd.to_numeric(frame["year"], errors="raise").astype(int)
+    frame[value_column] = pd.to_numeric(frame[value_column], errors="raise")
+    frame = frame.loc[frame[value_column] > 0].drop_duplicates("year", keep="last").sort_values("year")
+    effective_min_train_years = min(min_train_years, len(frame) - 1)
+    if effective_min_train_years < 2:
+        raise ValueError("at least three positive annual totals are required for rolling validation")
+    candidates = ("weighted_log_trend", "last_year_naive", "recent_median_growth")
+    records: list[dict[str, object]] = []
+    for candidate in candidates:
+        actuals: list[float] = []; predictions: list[float] = []
+        for _, train_end, target_year in annual_rolling_origin_splits(frame["year"], effective_min_train_years):
+            train = frame.loc[frame["year"] <= train_end]
+            actual = float(frame.loc[frame["year"].eq(target_year), value_column].iloc[0])
+            predictions.append(_annual_candidate_point(train, value_column, target_year, candidate)); actuals.append(actual)
+        residual = np.asarray(predictions) - np.asarray(actuals)
+        scale = np.maximum((np.abs(np.asarray(predictions)) + np.abs(np.asarray(actuals))) / 2.0, 1e-9)
+        records.append({"candidate": candidate, "test_rows": len(actuals), "mae": float(np.abs(residual).mean()), "rmse": float(np.sqrt(np.mean(residual**2))), "smape": float(100.0 * np.mean(np.abs(residual) / scale))})
+    return pd.DataFrame(records)
+
+
+def select_annual_candidate(scores: pd.DataFrame) -> str:
+    """Choose lowest sMAPE; use model simplicity then MAE/RMSE as deterministic tie-breakers."""
+    required = {"candidate", "mae", "rmse", "smape"}
+    if required.difference(scores.columns) or scores.empty:
+        raise ValueError("annual score table is empty or incomplete")
+    complexity = {"last_year_naive": 0, "recent_median_growth": 1, "weighted_log_trend": 2}
+    ordered = scores.copy(); ordered["complexity"] = ordered["candidate"].map(complexity).fillna(99)
+    return str(ordered.sort_values(["smape", "complexity", "mae", "rmse"]).iloc[0]["candidate"])
+
+
+def forecast_annual_candidate(
+    annual: pd.DataFrame, value_column: str, target_year: int, candidate: str, min_train_years: int = 8, interval_z: float = 1.645,
+) -> dict[str, float | int | str]:
+    """Forecast a selected annual candidate with interval width from its own rolling log residuals."""
+    frame = annual.loc[:, ["year", value_column]].copy().sort_values("year")
+    frame["year"] = pd.to_numeric(frame["year"], errors="raise").astype(int)
+    frame[value_column] = pd.to_numeric(frame[value_column], errors="raise")
+    frame = frame.loc[frame[value_column] > 0].drop_duplicates("year", keep="last")
+    point = _annual_candidate_point(frame, value_column, target_year, candidate)
+    log_residuals: list[float] = []
+    for _, train_end, test_year in annual_rolling_origin_splits(frame["year"], min_train_years):
+        train = frame.loc[frame["year"] <= train_end]
+        actual = float(frame.loc[frame["year"].eq(test_year), value_column].iloc[0])
+        predicted = _annual_candidate_point(train, value_column, test_year, candidate)
+        log_residuals.append(float(np.log(actual) - np.log(max(predicted, 1e-9))))
+    residual_std = float(np.std(log_residuals, ddof=0)) if log_residuals else 0.0
+    half_width = interval_z * residual_std
+    return {"year": int(target_year), "candidate": candidate, "point": float(point), "lower": float(point * np.exp(-half_width)), "upper": float(point * np.exp(half_width)), "rolling_log_residual_std": residual_std}
+
+
+def build_daily_calendar_features(frame: pd.DataFrame) -> pd.DataFrame:
+    """Create calendar covariates that remain known for any future forecast date."""
+    if "date" not in frame.columns:
+        raise ValueError("daily frame missing date")
+    result = frame.copy()
+    date = pd.to_datetime(result["date"], errors="raise")
+    day_of_year = date.dt.dayofyear.to_numpy(dtype=float)
+    result["is_summer"] = date.dt.month.isin([7, 8]).astype(float)
+    result["is_weekend"] = (date.dt.dayofweek >= 5).astype(float)
+    for weekday in range(1, 7):
+        result[f"weekday_{weekday}"] = (date.dt.dayofweek == weekday).astype(float)
+    result["annual_sin"] = np.sin(2.0 * np.pi * day_of_year / 365.25)
+    result["annual_cos"] = np.cos(2.0 * np.pi * day_of_year / 365.25)
+    return result
+
+
+def _daily_design(frame: pd.DataFrame, region_levels: tuple[str, ...], dynamic: bool) -> tuple[np.ndarray, tuple[str, ...]]:
+    calendar = build_daily_calendar_features(frame)
+    pieces = [np.ones((len(calendar), 1), dtype=float)]
+    names = ["intercept"]
+    for name in ["is_summer", "annual_sin", "annual_cos", *[f"weekday_{weekday}" for weekday in range(1, 7)]]:
+        pieces.append(calendar[[name]].to_numpy(dtype=float))
+        names.append(name)
+    if dynamic:
+        for name in ["rain_mm", "temperature_c", "search_lag_1"]:
+            if name in calendar.columns:
+                values = pd.to_numeric(calendar[name], errors="coerce").to_numpy(dtype=float)
+                finite_median = float(np.nanmedian(values)) if np.isfinite(values).any() else 0.0
+                pieces.append(np.nan_to_num(values, nan=finite_median).reshape(-1, 1))
+                names.append(name)
+    if "region_code" in calendar.columns:
+        regions = calendar["region_code"].astype(str)
+        for region in region_levels[1:]:
+            pieces.append(regions.eq(region).to_numpy(dtype=float).reshape(-1, 1))
+            names.append(f"region__{region}")
+    return np.hstack(pieces), tuple(names)
+
+
+def fit_daily_ridge_forecaster(
+    frame: pd.DataFrame, target_column: str, dynamic: bool, ridge_alpha: float = 10.0,
+) -> DailyRidgeForecaster:
+    """Fit a log-scale daily model; dynamic=True permits lag/search/weather covariates."""
+    if target_column not in frame.columns:
+        raise ValueError("daily frame missing target column")
+    if ridge_alpha < 0:
+        raise ValueError("ridge_alpha must be non-negative")
+    target = pd.to_numeric(frame[target_column], errors="coerce")
+    valid = target.notna() & target.ge(0)
+    if valid.sum() < 3:
+        raise ValueError("at least three non-negative daily targets are required")
+    regions = tuple(sorted(frame.get("region_code", pd.Series(["CITY"] * len(frame))).astype(str).unique()))
+    design, names = _daily_design(frame, regions, dynamic)
+    x = design[valid.to_numpy()]
+    means = x.mean(axis=0); scales = x.std(axis=0)
+    means[0] = 0.0; scales[0] = 1.0
+    scales[scales == 0] = 1.0
+    standardized = (x - means) / scales
+    standardized[:, 0] = 1.0
+    y = np.log1p(target.loc[valid].to_numpy(dtype=float))
+    penalty = np.eye(standardized.shape[1]) * ridge_alpha
+    penalty[0, 0] = 0.0
+    coefficients = np.linalg.pinv(standardized.T @ standardized + penalty) @ standardized.T @ y
+    residual_std = float(np.std(y - standardized @ coefficients, ddof=0))
+    positive_target = target.loc[valid & target.gt(0)].to_numpy(dtype=float)
+    floor = float(np.quantile(positive_target, 0.05)) if len(positive_target) else 0.0
+    return DailyRidgeForecaster(names, tuple(means), tuple(scales), tuple(coefficients), residual_std, regions, dynamic, floor)
+
+
+def predict_daily_ridge_forecaster(model: DailyRidgeForecaster, frame: pd.DataFrame, interval_z: float = 1.645) -> pd.DataFrame:
+    """Return direct multi-step daily forecasts using only supplied scenario covariates."""
+    if interval_z < 0:
+        raise ValueError("interval_z must be non-negative")
+    design, names = _daily_design(frame, model.region_levels, model.dynamic)
+    if names != model.feature_names:
+        raise ValueError("prediction feature columns differ from fitted feature columns")
+    means = np.asarray(model.feature_means); scales = np.asarray(model.feature_scales)
+    standardized = (design - means) / scales
+    standardized[:, 0] = 1.0
+    log_point = standardized @ np.asarray(model.coefficients)
+    half_width = interval_z * model.residual_std
+    result = frame.loc[:, [name for name in ["date", "region_code"] if name in frame.columns]].copy()
+    result["prediction_q10"] = np.maximum(np.expm1(log_point - half_width), 0.0)
+    result["prediction_q50"] = np.maximum(np.expm1(log_point), model.prediction_floor)
+    result["prediction_q90"] = np.maximum(np.expm1(log_point + half_width), result["prediction_q50"])
+    result["estimate_label"] = "anchor_constrained_daily_visitor_forecast"
+    result["forecast_method"] = "dynamic_ridge" if model.dynamic else "seasonal_calendar_ridge"
+    return result
+\end{lstlisting}
+
+
+\noindent\texttt{src/analysis/q2\_forecast\_outputs.py}
+\begin{lstlisting}[style=pysrc]
+def apply_relative_split_conformal_interval(
+    prediction: pd.DataFrame,
+    calibration_actual: pd.Series,
+    calibration_point: pd.Series,
+    coverage: float = 0.8,
+) -> tuple[pd.DataFrame, float]:
+    """Expand forecast intervals by a scale-free split-conformal residual radius.
+
+    The calibration residual is expressed relative to the point prediction, so
+    it can be transferred from an index-scale validation table to an
+    anchor-scaled visitor forecast without mixing their units.
+    """
+    required = {"prediction_q10", "prediction_q50", "prediction_q90"}
+    if missing := required - set(prediction.columns):
+        raise ValueError(f"prediction missing columns: {sorted(missing)}")
+    if not 0 < coverage < 1:
+        raise ValueError("coverage must be in (0, 1)")
+    actual = pd.to_numeric(calibration_actual, errors="coerce").to_numpy(dtype=float)
+    point = pd.to_numeric(calibration_point, errors="coerce").to_numpy(dtype=float)
+    usable = np.isfinite(actual) & np.isfinite(point) & (np.abs(point) > 1e-9)
+    if not usable.any():
+        raise ValueError("no usable calibration residuals")
+    relative_errors = np.abs(actual[usable] - point[usable]) / np.abs(point[usable])
+    radius = float(np.quantile(relative_errors, coverage, method="higher"))
+    result = prediction.copy()
+    lower = result["prediction_q50"] * max(0.0, 1.0 - radius)
+    upper = result["prediction_q50"] * (1.0 + radius)
+    result["prediction_q10"] = np.minimum(result["prediction_q10"], lower)
+    result["prediction_q90"] = np.maximum(result["prediction_q90"], upper)
+    return result, radius
+
+
+def apply_regional_relative_split_conformal_interval(
+    prediction: pd.DataFrame,
+    calibration: pd.DataFrame,
+    actual_column: str,
+    point_column: str,
+    coverage: float = 0.8,
+    min_region_rows: int = 20,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Calibrate relative conformal radii by region, with explicit global fallback.
+
+    A shared radius obscures regional heterogeneity.  Each region with enough
+    usable calibration observations obtains its own finite-sample radius; a
+    smaller region falls back to the global radius and is labelled as such.
+    """
+    required_prediction = {"region_code", "prediction_q10", "prediction_q50", "prediction_q90"}
+    required_calibration = {"region_code", actual_column, point_column}
+    if required_prediction.difference(prediction.columns) or required_calibration.difference(calibration.columns):
+        raise ValueError("regional conformal inputs are incomplete")
+    if min_region_rows < 1:
+        raise ValueError("min_region_rows must be positive")
+    _, global_radius = apply_relative_split_conformal_interval(
+        prediction,
+        calibration_actual=calibration[actual_column],
+        calibration_point=calibration[point_column],
+        coverage=coverage,
+    )
+    result = prediction.copy()
+    records: list[dict[str, object]] = []
+    regions = sorted(result["region_code"].astype(str).unique())
+    for region in regions:
+        subset = calibration.loc[calibration["region_code"].astype(str).eq(region), [actual_column, point_column]]
+        actual = pd.to_numeric(subset[actual_column], errors="coerce")
+        point = pd.to_numeric(subset[point_column], errors="coerce")
+        usable = actual.notna() & point.notna() & point.abs().gt(1e-9)
+        usable_rows = int(usable.sum())
+        if usable_rows >= min_region_rows:
+            _, radius = apply_relative_split_conformal_interval(
+                result.loc[result["region_code"].astype(str).eq(region)],
+                calibration_actual=actual.loc[usable],
+                calibration_point=point.loc[usable],
+                coverage=coverage,
+            )
+            status = "region_specific"
+        else:
+            radius = global_radius
+            status = "global_fallback_insufficient_region_calibration"
+        mask = result["region_code"].astype(str).eq(region)
+        lower = result.loc[mask, "prediction_q50"] * max(0.0, 1.0 - radius)
+        upper = result.loc[mask, "prediction_q50"] * (1.0 + radius)
+        result.loc[mask, "prediction_q10"] = np.minimum(result.loc[mask, "prediction_q10"], lower)
+        result.loc[mask, "prediction_q90"] = np.maximum(result.loc[mask, "prediction_q90"], upper)
+        records.append({"region_code": region, "relative_radius": float(radius), "calibration_rows": usable_rows, "calibration_status": status, "global_fallback_radius": float(global_radius)})
+    return result, pd.DataFrame(records)
+\end{lstlisting}
+
+\paragraph{滚动验证与协变量边界。} 可复核表 \url{q2_daily_rolling_origin_validation.csv} 位于 \url{outputs/question2_analysis}。该表固定尝试 2024-01-01、2024-04-01、2024-07-01 三个原点和 92 日窗口；原点前的数据才可进入训练、尺度换算与区间校准，去重后不足 20 条锚点观测的窗口不输出。动态日模型只使用日历、当期天气与预先滞后的搜索变量，不使用 \texttt{target\_lag\_1} 或任何未来游客量。滚动检验中的天气与搜索量均为已实现协变量，仅用于条件检验；2026 年预测使用预预测期按月日构造的气候情景。
+
+\section{问题三代码}
+
+\noindent\texttt{src/models/question3\_absolute\_capacity.py}
+\begin{lstlisting}[style=pysrc]
+def peak_parking_demand(
+    daily_visitors: float,
+    car_share: float,
+    average_party_size: float,
+    peak_arrival_share: float,
+    dwell_hours: float,
+    peak_window_hours: float,
+) -> int:
+    """Estimate concurrent parking spaces in the peak window.
+
+    ``daily_visitors`` is persons/day; car share is the fraction arriving by
+    private car; party size is persons/vehicle.  The result is vehicles/spaces.
+    """
+    if daily_visitors < 0:
+        raise ValueError("daily_visitors must be non-negative")
+    if not 0 <= car_share <= 1:
+        raise ValueError("car_share must be in [0, 1]")
+    if not 0 <= peak_arrival_share <= 1:
+        raise ValueError("peak_arrival_share must be in [0, 1]")
+    _positive(average_party_size, "average_party_size")
+    _positive(dwell_hours, "dwell_hours")
+    _positive(peak_window_hours, "peak_window_hours")
+    concurrent = daily_visitors * car_share / average_party_size * peak_arrival_share * dwell_hours / peak_window_hours
+    return math.ceil(concurrent)
+
+
+def parking_plan(peak_spaces: int, permanent_spaces: int, temporary_spaces: int = 0) -> dict[str, int | str]:
+    """Allocate a peak parking requirement to permanent and temporary spaces."""
+    for value, name in ((peak_spaces, "peak_spaces"), (permanent_spaces, "permanent_spaces"), (temporary_spaces, "temporary_spaces")):
+        if value < 0:
+            raise ValueError(f"{name} must be non-negative")
+    permanent_open = min(peak_spaces, permanent_spaces)
+    remaining = peak_spaces - permanent_open
+    temporary_open = min(remaining, temporary_spaces)
+    unserved = remaining - temporary_open
+    if unserved:
+        status = "parking_overflow_unserved"
+    elif temporary_open:
+        status = "temporary_capacity_required"
+    else:
+        status = "permanent_capacity_sufficient"
+    return {
+        "peak_spaces_required": peak_spaces,
+        "permanent_spaces_open": permanent_open,
+        "temporary_spaces_open": temporary_open,
+        "unserved_spaces": unserved,
+        "capacity_status": status,
+    }
+
+
+def required_shuttle_vehicles(
+    passenger_demand_per_hour: float,
+    seats_per_vehicle: int,
+    load_factor: float,
+    round_trip_minutes: float,
+    maximum_headway_minutes: float,
+) -> int:
+    """Return the simultaneous fleet needed for demand and headway targets."""
+    if passenger_demand_per_hour < 0:
+        raise ValueError("passenger_demand_per_hour must be non-negative")
+    _positive(seats_per_vehicle, "seats_per_vehicle")
+    if not 0 < load_factor <= 1:
+        raise ValueError("load_factor must be in (0, 1]")
+    _positive(round_trip_minutes, "round_trip_minutes")
+    _positive(maximum_headway_minutes, "maximum_headway_minutes")
+    demand_fleet = math.ceil(passenger_demand_per_hour * round_trip_minutes / (60 * seats_per_vehicle * load_factor))
+    headway_fleet = math.ceil(round_trip_minutes / maximum_headway_minutes)
+    return max(demand_fleet, headway_fleet)
+
+
+def minimum_staff(
+    arrival_rate_per_hour: float,
+    service_rate_per_staff_hour: float,
+    utilisation_target: float,
+    minimum_people: int = 1,
+) -> int:
+    """Return staff needed to keep workload at or below the utilisation target."""
+    if arrival_rate_per_hour < 0:
+        raise ValueError("arrival_rate_per_hour must be non-negative")
+    _positive(service_rate_per_staff_hour, "service_rate_per_staff_hour")
+    if not 0 < utilisation_target <= 1:
+        raise ValueError("utilisation_target must be in (0, 1]")
+    if minimum_people < 0:
+        raise ValueError("minimum_people must be non-negative")
+    required = math.ceil(arrival_rate_per_hour / (service_rate_per_staff_hour * utilisation_target))
+    return max(required, minimum_people)
+\end{lstlisting}
+
+
+\noindent\texttt{src/models/question3\_staff\_scheduling.py}
+\begin{lstlisting}[style=pysrc]
+def optimize_three_shifts(required_people_by_block: list[int]) -> dict[str, int]:
+    """Minimise staff-shifts while covering early/mid/late demand.
+
+    The early shift covers blocks 1–2, the middle shift blocks 1–3 and the
+    late shift blocks 2–3.  These are staff-shift assignments, not a record of
+    currently employed people.
+    """
+    if len(required_people_by_block) != 3:
+        raise ValueError("required_people_by_block must contain early, middle and late demand")
+    if any(int(value) != value or value < 0 for value in required_people_by_block):
+        raise ValueError("required_people_by_block must be non-negative integers")
+    early_required, middle_required, late_required = required_people_by_block
+    upper = max(required_people_by_block)
+    candidates: list[dict[str, int]] = []
+    for middle_shift in range(upper + 1):
+        early_shift = max(early_required - middle_shift, 0)
+        late_shift = max(late_required - middle_shift, 0)
+        total = early_shift + middle_shift + late_shift
+        if total < middle_required:
+            late_shift += middle_required - total
+            total = middle_required
+        coverage = [early_shift + middle_shift, total, middle_shift + late_shift]
+        candidates.append({
+            "early_shift": early_shift,
+            "middle_shift": middle_shift,
+            "late_shift": late_shift,
+            "staff_shifts": total,
+            "overstaffing_person_blocks": sum(provided - required for provided, required in zip(coverage, required_people_by_block)),
+        })
+    return min(candidates, key=lambda row: (row["staff_shifts"], row["overstaffing_person_blocks"], row["middle_shift"], row["early_shift"]))
+\end{lstlisting}
+
+
+\noindent\texttt{src/models/question3\_absolute\_optimizer.py}
+\begin{lstlisting}[style=pysrc]
+def optimize_absolute_resources(
+    parking_required: int,
+    permanent_spaces: int,
+    temporary_capacity: int,
+    shuttle_required: int,
+    staff_required: int,
+    risk_penalty: float = 4.0,
+) -> tuple[dict[str, float | int], pd.DataFrame]:
+    """Enumerate six coverage levels for temporary parking, shuttles and staff.
+
+    Costs are relative scenario units: temporary-space activation, vehicle
+    deployment, and staff-shift deployment each equal one at full coverage.
+    Experience loss is the weighted fraction of unmet parking, shuttle and
+    staffing need.  It is not a measured satisfaction score.
+    """
+    values = (parking_required, permanent_spaces, temporary_capacity, shuttle_required, staff_required)
+    if any(int(value) != value or value < 0 for value in values) or risk_penalty < 0:
+        raise ValueError("resource requirements and capacities must be non-negative integers; risk_penalty non-negative")
+    levels = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)
+    records = []
+    for parking_level, shuttle_level, staff_level in product(levels, repeat=3):
+        temporary = math.ceil(temporary_capacity * parking_level)
+        shuttles = math.ceil(shuttle_required * shuttle_level)
+        staff = math.ceil(staff_required * staff_level)
+        parking_unserved = max(parking_required - permanent_spaces - temporary, 0)
+        shuttle_shortfall = max(shuttle_required - shuttles, 0)
+        staff_shortfall = max(staff_required - staff, 0)
+        parking_loss = parking_unserved / max(parking_required, 1)
+        shuttle_loss = shuttle_shortfall / max(shuttle_required, 1)
+        staff_loss = staff_shortfall / max(staff_required, 1)
+        experience_loss = 0.9 * parking_loss + 1.2 * shuttle_loss + staff_loss
+        relative_cost = (
+            0.6 * temporary / max(temporary_capacity, 1)
+            + 1.2 * shuttles / max(shuttle_required, 1)
+            + staff / max(staff_required, 1)
+        )
+        records.append({
+            "selected_temporary_spaces": temporary,
+            "selected_shuttle_vehicles": shuttles,
+            "selected_staff_shifts": staff,
+            "parking_unserved_spaces": parking_unserved,
+            "shuttle_shortfall": shuttle_shortfall,
+            "staff_shortfall": staff_shortfall,
+            "standardized_experience_loss": experience_loss,
+            "relative_operating_cost": relative_cost,
+            "objective": relative_cost + risk_penalty * experience_loss,
+        })
+    diagnostics = pd.DataFrame(records).sort_values(["objective", "relative_operating_cost", "standardized_experience_loss"]).reset_index(drop=True)
+    return diagnostics.iloc[0].to_dict(), diagnostics
+\end{lstlisting}
+
+
+\noindent\texttt{src/models/value\_of\_time.py}
+\begin{lstlisting}[style=pysrc]
+def estimate_traveler_time_loss(
+    *,
+    daily_visitors: float,
+    parking_unserved_spaces: float,
+    average_party_size: float,
+    parking_delay_hours: float,
+    transfer_share: float,
+    shuttle_shortfall_fraction: float,
+    shuttle_delay_hours: float,
+    staff_shortfall_fraction: float,
+    staff_delay_hours: float,
+    vot_cny_per_hour: float,
+) -> dict[str, float]:
+    """Estimate visitor time loss and its VOT-valued currency equivalent.
+
+    The result measures scenario traveller inconvenience only.  It must not be
+    interpreted as an operator cash ledger, compensation amount, or survey-based
+    willingness-to-pay estimate.
+    """
+    visitors = _non_negative(daily_visitors, "daily_visitors")
+    unserved_spaces = _non_negative(parking_unserved_spaces, "parking_unserved_spaces")
+    party_size = float(average_party_size)
+    if party_size <= 0:
+        raise ValueError("average_party_size must be positive")
+    parking_delay = _non_negative(parking_delay_hours, "parking_delay_hours")
+    transfer = _share(transfer_share, "transfer_share")
+    shuttle_shortfall = _share(shuttle_shortfall_fraction, "shuttle_shortfall_fraction")
+    shuttle_delay = _non_negative(shuttle_delay_hours, "shuttle_delay_hours")
+    staff_shortfall = _share(staff_shortfall_fraction, "staff_shortfall_fraction")
+    staff_delay = _non_negative(staff_delay_hours, "staff_delay_hours")
+    vot = _non_negative(vot_cny_per_hour, "vot_cny_per_hour")
+
+    parking_hours = unserved_spaces * party_size * parking_delay
+    shuttle_hours = visitors * transfer * shuttle_shortfall * shuttle_delay
+    staff_hours = visitors * staff_shortfall * staff_delay
+    total_hours = parking_hours + shuttle_hours + staff_hours
+    return {
+        "parking_time_loss_hours": parking_hours,
+        "shuttle_time_loss_hours": shuttle_hours,
+        "staff_time_loss_hours": staff_hours,
+        "traveler_time_loss_hours": total_hours,
+        "traveler_time_loss_cny": total_hours * vot,
+    }
+\end{lstlisting}
+
+\section{问题四代码}
+
+\noindent\texttt{src/models/question4\_scenarios.py}
+\begin{lstlisting}[style=pysrc]
+def apply_event_pulse(frame: pd.DataFrame, visitor_column: str, event_date: str, intensity: float) -> pd.DataFrame:
+    """Apply a five-day 0.25/0.50/1.00/0.50/0.25 event impulse."""
+    _check_column(frame, visitor_column)
+    if intensity < 0:
+        raise ValueError("intensity must be non-negative")
+    result = frame.copy()
+    dates = pd.to_datetime(result["date"])
+    offset = (dates - pd.Timestamp(event_date)).dt.days
+    pulse = offset.map({-2: 0.25, -1: 0.50, 0: 1.00, 1: 0.50, 2: 0.25}).fillna(0.0)
+    result["scenario_visitors"] = result[visitor_column] * (1 + intensity * pulse)
+    result["scenario_type"] = "cultural_tourism_event"
+    return result
+
+
+def apply_continuous_rain(frame: pd.DataFrame, visitor_column: str, start_date: str, duration_days: int, daily_attenuation: float) -> pd.DataFrame:
+    """Apply cumulative visitor attenuation across consecutive rainy days."""
+    _check_column(frame, visitor_column)
+    if duration_days <= 0 or not 0 <= daily_attenuation <= 1:
+        raise ValueError("duration_days must be positive and daily_attenuation in [0, 1]")
+    result = frame.copy()
+    offset = (pd.to_datetime(result["date"]) - pd.Timestamp(start_date)).dt.days
+    rainy_day = offset.where(offset.between(0, duration_days - 1), -1)
+    multiplier = 1 - daily_attenuation * (rainy_day + 1)
+    multiplier = multiplier.where(rainy_day >= 0, 1.0).clip(lower=0)
+    result["scenario_visitors"] = result[visitor_column] * multiplier
+    result["scenario_type"] = "continuous_rain"
+    return result
+
+
+def service_gap_index(parking_required: float, parking_available: float, shuttle_required: float, shuttle_available: float, staff_required: float, staff_available: float) -> float:
+    """Return the equally weighted mean proportional shortfall across services."""
+    values = (parking_required, parking_available, shuttle_required, shuttle_available, staff_required, staff_available)
+    if any(value < 0 for value in values):
+        raise ValueError("service requirements and availability must be non-negative")
+    gaps = [max(required - available, 0) / max(required, 1) for required, available in ((parking_required, parking_available), (shuttle_required, shuttle_available), (staff_required, staff_available))]
+    return sum(gaps) / len(gaps)
+\end{lstlisting}
+
+
+\noindent\texttt{src/analysis/q4\_scenario\_outputs.py}
+\begin{lstlisting}[style=pysrc]
+def compare_baseline_with_reoptimisation(baseline: pd.DataFrame, shocked: pd.DataFrame, scenario: dict[str, float], risk_penalty: float = 4.0, vot_parameters: dict[str, float] | None = None) -> pd.DataFrame:
+    """Compare fixed baseline resources against a shocked, re-optimised plan."""
+    merged = baseline.merge(shocked.loc[:, ["date", "region_code", "scenario_visitors"]], on=["date", "region_code"], validate="one_to_one")
+    scenario_row = {**scenario, "region_code": merged.loc[0, "region_code"], "demand_scenario": "q4_counterfactual", "permanent_spaces": int(merged.loc[0, "permanent_capacity_available"]), "temporary_spaces": int(merged.loc[0, "temporary_capacity_available"])}
+    demand = build_daily_absolute_plan(merged.loc[:, ["date", "region_code", "scenario_visitors"]].rename(columns={"scenario_visitors": "visitor_estimate_q50"}), pd.DataFrame([scenario_row]))
+    rows = []
+    for index, base in merged.iterrows():
+        required = demand.iloc[index]
+        gap = service_gap_index(float(required["peak_spaces_required"]), float(base["permanent_capacity_available"] + base["temporary_capacity_available"]), float(required["recommended_shuttle_vehicles"]), float(base["recommended_shuttle_vehicles"]), float(required["recommended_total_staff_shifts"]), float(base["recommended_total_staff_shifts"]))
+        chosen, _ = optimize_absolute_resources(int(required["peak_spaces_required"]), int(base["permanent_capacity_available"]), int(base["temporary_capacity_available"]), int(required["recommended_shuttle_vehicles"]), int(required["recommended_total_staff_shifts"]), risk_penalty)
+        baseline_parking_unserved = max(int(required["peak_spaces_required"]) - int(base["permanent_capacity_available"]) - int(base["temporary_capacity_available"]), 0)
+        baseline_shuttle_shortfall = max(int(required["recommended_shuttle_vehicles"]) - int(base["recommended_shuttle_vehicles"]), 0)
+        baseline_staff_shortfall = max(int(required["recommended_total_staff_shifts"]) - int(base["recommended_total_staff_shifts"]), 0)
+        rows.append({"date": base["date"], "region_code": base["region_code"], "baseline_visitors": base["visitor_estimate_q50"], "scenario_visitors": base["scenario_visitors"], "baseline_service_gap": gap, "baseline_shuttle_vehicles": base["recommended_shuttle_vehicles"], "reoptimized_shuttle_vehicles": chosen["selected_shuttle_vehicles"], "baseline_staff_shifts": base["recommended_total_staff_shifts"], "reoptimized_staff_shifts": chosen["selected_staff_shifts"], "reoptimized_temporary_spaces": chosen["selected_temporary_spaces"], "reoptimized_relative_cost": chosen["relative_operating_cost"], "reoptimized_experience_loss": chosen["standardized_experience_loss"], "parking_unserved_spaces": chosen["parking_unserved_spaces"], "shuttle_shortfall": chosen["shuttle_shortfall"], "staff_shortfall": chosen["staff_shortfall"], "baseline_parking_unserved_spaces": baseline_parking_unserved, "baseline_shuttle_shortfall": baseline_shuttle_shortfall, "baseline_staff_shortfall": baseline_staff_shortfall, "recommended_shuttle_vehicles": required["recommended_shuttle_vehicles"], "recommended_total_staff_shifts": required["recommended_total_staff_shifts"], "average_party_size": scenario["average_party_size"], "transfer_share": scenario["transfer_share"], "visitor_estimate_q50": base["scenario_visitors"], "scenario_status": "counterfactual_planning_simulation"})
+    result = pd.DataFrame(rows)
+    if vot_parameters is not None:
+        parameters = dict(vot_parameters)
+        parameters.setdefault("vot_scenario", "central")
+        baseline_input = result.assign(
+            parking_unserved_spaces=result["baseline_parking_unserved_spaces"],
+            shuttle_shortfall=result["baseline_shuttle_shortfall"],
+            staff_shortfall=result["baseline_staff_shortfall"],
+        )
+        baseline_vot = attach_vot_costs(baseline_input, pd.DataFrame([parameters]))
+        result = attach_vot_costs(result, pd.DataFrame([parameters]))
+        result["baseline_traveler_time_loss_hours"] = baseline_vot["traveler_time_loss_hours"]
+        result["baseline_traveler_time_loss_cny"] = baseline_vot["traveler_time_loss_cny_central"]
+        result = result.rename(columns={"traveler_time_loss_hours": "reoptimized_traveler_time_loss_hours", "traveler_time_loss_cny_central": "reoptimized_traveler_time_loss_cny"})
+    return result
+
+
+def one_at_a_time_sensitivity(baseline: pd.DataFrame, scenario: dict[str, float], event_date: str, ranges: dict[str, tuple[float, float]]) -> pd.DataFrame:
+    """Recompute the event scenario at low/high values for each named parameter."""
+    records = []
+    for parameter, (low, high) in ranges.items():
+        gaps = []
+        for value in (low, high):
+            adjusted = dict(scenario)
+            intensity = 0.4
+            if parameter == "event_intensity":
+                intensity = value
+            else:
+                adjusted[parameter] = value
+            shocked = apply_event_pulse(baseline, "visitor_estimate_q50", event_date, intensity)
+            comparison = compare_baseline_with_reoptimisation(baseline, shocked, adjusted)
+            gaps.append(float(comparison["baseline_service_gap"].max()))
+        records.append({"parameter": parameter, "low_value": low, "high_value": high, "low_max_service_gap": gaps[0], "high_max_service_gap": gaps[1], "sensitivity_effect": abs(gaps[1] - gaps[0])})
+    result = pd.DataFrame(records)
+    result["ranking"] = result["sensitivity_effect"].rank(method="dense", ascending=False).astype(int)
+    return result.sort_values(["ranking", "parameter"]).reset_index(drop=True)
+\end{lstlisting}
+
+
+\section{主线复现入口}
+
+\noindent\texttt{scripts/run\_paper\_mainline.py}
+\begin{lstlisting}[style=pysrc]
+"""Run only the four-question paper mainline; archived diagnostics stay optional."""
+
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from src.utils.paper_mainline import PAPER_MAINLINE_SCRIPTS
+
+
+def main() -> None:
+    for index, name in enumerate(PAPER_MAINLINE_SCRIPTS, start=1):
+        print(f"[{index}/{len(PAPER_MAINLINE_SCRIPTS)}] running {name}")
+        subprocess.run([sys.executable, str(ROOT / "scripts" / name)], check=True)
+    print("[OK] paper mainline completed.")
+
+
+if __name__ == "__main__":
+    main()
+\end{lstlisting}
+
 \end{appendices}
 
 \end{document}
