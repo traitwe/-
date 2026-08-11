@@ -112,7 +112,7 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \begin{equation}
 P_d=\left\lceil\frac{V_d\alpha}{o}\pi\frac{h}{H}\right\rceil.
 \end{equation}
-接驳车辆数同时满足运输能力和最大班距约束；人员按入口、停车和驾驶三类服务在早、中、晚三班中覆盖。临时泊位、接驳车辆和人员均在 $\{0,0.2,\ldots,1\}$ 的覆盖档位中搜索，目标函数为相对运行成本与标准化服务缺口的加权和。该成本不是人民币，服务缺口也不是问卷满意度。
+接驳车辆数同时满足运输能力和最大班距约束；人员按入口、停车和驾驶三类服务在早、中、晚三班中覆盖。临时泊位、接驳车辆和人员均在 $\{0,0.2,\ldots,1\}$ 的覆盖档位中搜索，目标函数为相对运行成本与标准化服务缺口的加权和。该成本不是人民币，服务缺口也不是问卷满意度。为单独评估服务不足的经济影响，以 2024 年秦皇岛城镇居民人均可支配收入 48,700 元\cite{qhdstat} 除以 2,000 小时得到中位 VOT $24.35$ 元/(人\,h)，并取 $0.5$、$1.0$、$1.5$ 倍形成敏感性区间；它只货币化停车绕行、接驳等待和服务排队的游客时间损失，不替代资源投入目标。
 
 北戴河 2024 年暑期旅游公交日间 15 分钟班距作为服务水平事实锚点\cite{bdhbus}；山海关火车站--景区入口的 2026 年 30 分钟班距仅作外部参照\cite{shgbus}，因范围不同不覆盖古城核心情景参数。停车占用报道未进入模型，因为其缺少与三区范围一致的连续逐时占用和泊位口径。
 
@@ -143,7 +143,7 @@ P_d=\left\lceil\frac{V_d\alpha}{o}\pi\frac{h}{H}\right\rceil.
 \end{tabular}
 \end{table}
 
-灵敏度排序显示，接驳分担率、活动强度和私家车比例最影响最大服务缺口。因此活动前两日应根据预售和热度启动 P+R、备用接驳与中班增援；降雨情景则应收缩可变运力，但保留排水、应急引导、咨询和无障碍交通的最低班组。图\ref{fig:q4sensitivity}给出五项情景参数对最大服务缺口的影响排序。
+灵敏度排序显示，接驳分担率、活动强度和私家车比例最影响最大服务缺口。因此活动前两日应根据预售和热度启动 P+R、备用接驳与中班增援；降雨情景则应收缩可变运力，但保留排水、应急引导、咨询和无障碍交通的最低班组。以中位 VOT 计，8 月 8 日活动冲击下固定基线方案的最大游客时间损失为 146,996 元，重优化后降为 0；该数为情景时间损失估计，不是运营现金流或游客赔付。图\ref{fig:q4sensitivity}给出五项情景参数对最大服务缺口的影响排序。
 \begin{figure}[H]\centering
 \includegraphics[width=.80\textwidth]{q4_sensitivity_ranking.png}
 \caption{情景参数对最大服务缺口的影响排序}\label{fig:q4sensitivity}
@@ -157,9 +157,6 @@ P_d=\left\lceil\frac{V_d\alpha}{o}\pi\frac{h}{H}\right\rceil.
 
 综上，秦皇岛旅游管理应以暑期预配置、节假日动态调度和突发事件预案为主线。北戴河需优先保证旅游专线班距；海港--阿那亚需加强预约、停车和住宿的统一日台账；山海关应把古城节点饱和转化为外圈换乘和分时入城策略。获得实时闸机、停车诱导、调度和订单数据后，可将模型升级为小时级滚动优化。
 
-\section*{数据与复现说明}
-全部输入口径、参数边界与生成结果保存在项目的 \texttt{data}、\texttt{outputs} 和“论文写作”目录。运行 \texttt{scripts/run\_paper\_mainline.py} 可重建主线输出，运行 \texttt{pytest -q} 可执行回归测试。公开网页来源及数据适用边界详见数据登记表与封稿核验文件。
-
 \begin{thebibliography}{9}
 \bibitem{qhdstat} 秦皇岛市统计局. 《秦皇岛市国民经济和社会发展统计公报》[EB/OL]. 项目原始数据登记表所列 2002--2024 年官方年度游客量来源.
 \bibitem{bdhbus} 人民网河北频道. 北戴河开通旅游公交专线 2 路[EB/OL]. \url{https://he.people.com.cn/n2/2024/0705/c192235-40902683.html}.
@@ -167,5 +164,10 @@ P_d=\left\lceil\frac{V_d\alpha}{o}\pi\frac{h}{H}\right\rceil.
 \bibitem{shgtravel} 山海关景区. 交通指南[EB/OL]. \url{https://www.shgjq.com/jtzn/index.jhtml}.
 \bibitem{aranya} 阿那亚戏剧节. Travel Information[EB/OL]. \url{https://www.aranyatheaterfestival.com/en/travel}.
 \end{thebibliography}
+
+\begin{appendices}
+\section{数据与复现说明}
+全部输入口径、参数边界与生成结果保存在项目的 \texttt{data}、\texttt{outputs} 和“论文写作”目录。运行 \texttt{scripts/run\_paper\_mainline.py} 可重建主线输出，运行 \texttt{pytest -q} 可执行回归测试。主线仅在 Q1--Q4 检查点均齐全时刷新 \texttt{outputs/verified\_artifacts}；若运行失败，\texttt{outputs/delivery\_status.json} 会指定已验证产物版，禁止混用失败运行的新表。公开网页来源及数据适用边界详见数据登记表与封稿核验文件。
+\end{appendices}
 
 \end{document}

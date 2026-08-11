@@ -24,3 +24,22 @@ outputs/tables/*
 !outputs/tables/.gitkeep
 outputs/results/*
 !outputs/results/.gitkeep
+# Python and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local test and rendering outputs
+tmp/
+q2_seal_test/
+q2_test_run/
+q2_next_test/
+q2_full_test_run/
+q3_project_seal_test/
+
+# LaTeX compilation intermediates (keep .tex and final .pdf)
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz

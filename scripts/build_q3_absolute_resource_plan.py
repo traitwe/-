@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.analysis.q3_absolute_resource_outputs import build_all_scenario_plans
+from src.analysis.vot_outputs import attach_vot_costs
 from src.models.question3_absolute_optimizer import optimize_absolute_resources
 
 
@@ -22,8 +23,9 @@ def season_from_month(month: int) -> str:
 
 forecast = pd.read_csv(ROOT / "outputs/question2_analysis/q2_region_daily_forecast_2026.csv", encoding="utf-8-sig")
 scenarios = pd.read_csv(ROOT / "data/model_input/q3_absolute_planning_scenarios.csv", encoding="utf-8-sig")
+vot_scenarios = pd.read_csv(ROOT / "data/model_input/q3_vot_scenarios.csv", encoding="utf-8-sig")
 daily = build_all_scenario_plans(forecast, scenarios)
-daily = daily.merge(scenarios.loc[:, ["region_code", "demand_scenario", "parameter_basis", "parameter_note"]], on=["region_code", "demand_scenario"], how="left", validate="many_to_one")
+daily = daily.merge(scenarios.loc[:, ["region_code", "demand_scenario", "parameter_basis", "parameter_note", "average_party_size", "transfer_share"]], on=["region_code", "demand_scenario"], how="left", validate="many_to_one")
 daily["season"] = pd.to_datetime(daily["date"]).dt.month.map(season_from_month)
 output = ROOT / "outputs/question3_analysis"
 output.mkdir(parents=True, exist_ok=True)
@@ -46,6 +48,7 @@ def optimize_frame(frame: pd.DataFrame, penalty: float) -> pd.DataFrame:
 optimized_daily = optimize_frame(daily, 4.0)
 optimized_daily["risk_penalty"] = 4.0
 optimized_daily["optimization_status"] = "relative_cost_and_standardized_experience_loss__not_currency_or_survey_score"
+optimized_daily = attach_vot_costs(optimized_daily, vot_scenarios)
 optimized_daily.to_csv(output / "q3_absolute_daily_optimized_plan_2026.csv", index=False, encoding="utf-8-sig")
 
 pareto_rows = []

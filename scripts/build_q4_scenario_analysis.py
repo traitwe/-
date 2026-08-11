@@ -13,19 +13,24 @@ from src.models.question4_scenarios import apply_continuous_rain, apply_event_pu
 out = ROOT / "outputs/question4_analysis"; out.mkdir(parents=True, exist_ok=True)
 base = pd.read_csv(ROOT / "outputs/question3_analysis/q3_absolute_daily_resource_plan_2026.csv", encoding="utf-8-sig")
 params = pd.read_csv(ROOT / "data/model_input/q3_absolute_planning_scenarios.csv", encoding="utf-8-sig")
+vot = pd.read_csv(ROOT / "data/model_input/q3_vot_scenarios.csv", encoding="utf-8-sig")
 
 def scenario_dict(region: str) -> dict:
     return params[(params.region_code == region) & (params.demand_scenario == "central")].iloc[0].to_dict()
 
+
+def central_vot() -> dict:
+    return vot[vot.vot_scenario.eq("central")].iloc[0].to_dict()
+
 bdh = base[(base.region_code == "BDH") & (base.demand_scenario == "central")].copy()
 event = apply_event_pulse(bdh, "visitor_estimate_q50", "2026-08-08", 0.40)
-event_result = compare_baseline_with_reoptimisation(bdh, event, scenario_dict("BDH"))
+event_result = compare_baseline_with_reoptimisation(bdh, event, scenario_dict("BDH"), vot_parameters=central_vot())
 event_result["scenario_name"] = "beidaihe_summer_cultural_event"
 event_result.to_csv(out / "q4_event_counterfactual_2026.csv", index=False, encoding="utf-8-sig")
 
 shg = base[(base.region_code == "SHG") & (base.demand_scenario == "central")].copy()
 rain = apply_continuous_rain(shg, "visitor_estimate_q50", "2026-07-15", 5, 0.12)
-rain_result = compare_baseline_with_reoptimisation(shg, rain, scenario_dict("SHG"))
+rain_result = compare_baseline_with_reoptimisation(shg, rain, scenario_dict("SHG"), vot_parameters=central_vot())
 rain_result["scenario_name"] = "shanhaiguan_five_day_continuous_rain"
 rain_result.to_csv(out / "q4_rain_counterfactual_2026.csv", index=False, encoding="utf-8-sig")
 
