@@ -11,6 +11,8 @@ from src.analysis.q4_scenario_outputs import compare_baseline_with_reoptimisatio
 from src.models.question4_scenarios import apply_continuous_rain, apply_event_pulse
 
 out = ROOT / "outputs/question4_analysis"; out.mkdir(parents=True, exist_ok=True)
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+plt.rcParams["axes.unicode_minus"] = False
 base = pd.read_csv(ROOT / "outputs/question3_analysis/q3_absolute_daily_resource_plan_2026.csv", encoding="utf-8-sig")
 params = pd.read_csv(ROOT / "data/model_input/q3_absolute_planning_scenarios.csv", encoding="utf-8-sig")
 vot = pd.read_csv(ROOT / "data/model_input/q3_vot_scenarios.csv", encoding="utf-8-sig")
@@ -61,5 +63,6 @@ def window_summary(frame, start, end, name):
 
 pd.DataFrame([window_summary(event_result, "2026-08-06", "2026-08-10", "beidaihe_event_window"), window_summary(rain_result, "2026-07-15", "2026-07-19", "shanhaiguan_rain_window")]).to_csv(out / "q4_scenario_window_adjustment_summary.csv", index=False, encoding="utf-8-sig")
 
-plt.figure(figsize=(8, 4)); plt.bar(ranking.parameter, ranking.sensitivity_effect); plt.xticks(rotation=30, ha="right"); plt.ylabel("service-gap effect"); plt.tight_layout(); plt.savefig(out / "q4_sensitivity_ranking.png", dpi=180); plt.close()
-plt.figure(figsize=(8, 4)); plt.plot(event_result.date, event_result.baseline_service_gap, label="event baseline gap"); plt.plot(rain_result.date, rain_result.baseline_service_gap, label="rain baseline gap"); plt.legend(); plt.xticks(rotation=30, ha="right"); plt.ylabel("service gap"); plt.tight_layout(); plt.savefig(out / "q4_scenario_service_gap.png", dpi=180); plt.close()
+parameter_labels = {"transfer_share": "接驳分担率", "event_intensity": "活动强度", "car_share": "私家车比例", "dwell_hours": "停留时长", "rain_daily_attenuation": "单日降雨衰减"}
+plt.figure(figsize=(8, 4)); plt.bar(ranking.parameter.map(parameter_labels), ranking.sensitivity_effect); plt.xticks(rotation=25, ha="right"); plt.ylabel("对最大服务缺口的影响"); plt.tight_layout(); plt.savefig(out / "q4_sensitivity_ranking.png", dpi=180); plt.close()
+plt.figure(figsize=(8, 4)); plt.plot(event_result.date, event_result.baseline_service_gap, label="活动冲击基线缺口"); plt.plot(rain_result.date, rain_result.baseline_service_gap, label="降雨情景基线缺口"); plt.legend(); plt.xticks(rotation=30, ha="right"); plt.ylabel("服务缺口"); plt.tight_layout(); plt.savefig(out / "q4_scenario_service_gap.png", dpi=180); plt.close()

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg", force=True)
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -36,7 +38,7 @@ def build_q1_paper_figures(analysis_dir: Path, output_dir: Path) -> dict[str, Pa
     fig, ax = plt.subplots(figsize=(9.2, 4.8))
     ax.bar(annual["year"], annual["official_tourists"], color="#91b7d9", label="官方国内游客量")
     ax.plot(annual["year"], annual["trend_component"], color="#b9413e", marker="o", ms=3, lw=2, label="长期趋势")
-    ax.set(xlabel="年份", ylabel="国内游客量（千人次）", title="图1  秦皇岛市年度国内游客量及长期趋势")
+    ax.set(xlabel="年份", ylabel="国内游客量（千人次）")
     ax.legend(frameon=False, ncol=2); ax.grid(axis="y", alpha=.25); fig.tight_layout()
     annual_png = output_dir / "q1_city_annual_trend.png"
     fig.savefig(annual_png, dpi=300, bbox_inches="tight"); plt.close(fig)
@@ -50,7 +52,7 @@ def build_q1_paper_figures(analysis_dir: Path, output_dir: Path) -> dict[str, Pa
         ax.plot(pd.to_datetime(d["date"]), d["pressure_index"], lw=1.35, color=colors[code], label=label)
     ax.axvspan(pd.Timestamp("2025-07-01"), pd.Timestamp("2025-08-31"), color="#f4c95d", alpha=.13, label="暑期")
     ax.axvspan(pd.Timestamp("2025-10-01"), pd.Timestamp("2025-10-07"), color="#df7861", alpha=.13, label="国庆")
-    ax.set(xlabel="日期", ylabel="旅游压力指数（相对量）", title="图2  三大片区旺季日级旅游压力")
+    ax.set(xlabel="日期", ylabel="旅游压力指数（相对量）")
     ax.legend(frameon=False, ncol=5, fontsize=8); ax.grid(axis="y", alpha=.25); fig.autofmt_xdate(); fig.tight_layout()
     regional_png = output_dir / "q1_regional_peak_pressure_2025.png"
     fig.savefig(regional_png, dpi=300, bbox_inches="tight"); plt.close(fig)

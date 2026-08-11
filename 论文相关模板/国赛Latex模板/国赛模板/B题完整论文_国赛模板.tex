@@ -12,6 +12,7 @@
 \yearinput{2026}
 \monthinput{08}
 \dayinput{11}
+\newcommand{\paperTableWidth}{0.86\textwidth}
 
 \begin{document}
 \maketitle
@@ -34,15 +35,16 @@
 \subsection{符号说明与数据口径}
 表\ref{tab:data}给出进入主线的数据层级。搜索量仅作需求代理变量，天气词不进入旅游需求主题；不匹配三区范围的景区报道只作合理性核验，不计入误差。
 
-\begin{table}[H]\centering
+\begin{table}[H]\centering\small
+\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{主线数据及使用口径}\label{tab:data}
-\begin{tabular}{p{3.2cm}p{2cm}p{2.4cm}p{5cm}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}p{2.8cm}p{1.6cm}p{2.0cm}p{4.0cm}@{}}\toprule
 数据层 & 时间跨度 & 粒度 & 主线用途\\ \midrule
 全市国内游客量 & 2002--2024 & 年度 & 绝对尺度锚点与年度预测\\
 景区排行、天气、节假日、搜索主题 & 2023--2025（搜索扩展至2016--2026） & 日级 & 三区相对压力与日级协变量\\
 公开客流报道锚点 & 2023--2025 & 节假日/暑期 & 尺度校准或外部合理性核验\\
 停车、接驳公开锚点 & 2014--2026 & 节点/班距 & Q3 容量边界和服务班距参照\\ \bottomrule
-\end{tabular}
+\end{tabular*}
 \end{table}
 
 设 $Y_y$ 为第 $y$ 年全市官方年度国内游客量，$F_{r,t}$ 为片区 $r$ 在日期 $t$ 的相对旅游压力，$V_{r,t}^{(q)}$ 为锚点约束下的日级游客规模情景，$P_t,N_t,S_t$ 分别为泊位、接驳车辆与三班制人员需求。除 $Y_y$ 外，本文不将上述量称为逐日实测统计。
@@ -51,6 +53,21 @@
 公开锚点在地域和统计范围一致时可校准尺度；服务班距可作为服务水平约束，但不能反推实际车辆数或载客量；未公布泊位数的停车场只作为换乘节点；车辆座位、满载率、私家车出行比例和服务效率均作为显式情景参数。
 
 \section{模型建立与求解}
+\subsection{数据预处理与四问衔接}
+为避免不同统计口径在模型中被混用，先按“数据层--可用范围--用途”完成预处理：年度官方游客量仅保留为全市绝对尺度；三区 2023--2025 年片区--日期记录按日期去重并统一日历、天气和搜索的日期键；景区榜单未出现的记录保留为低于展示阈值的左删失信息，不以零客流填补；外部报道仅在地域、时间与统计范围同时匹配时参与锚点校准，其余仅作合理性核验。由此得到 23 条年度锚点和 3,288 条片区--日期记录（每片区 1,096 条）。停车、接驳报道只提取为容量边界或服务水平参照，不反推未公开的实际运营台账。
+
+四问之间按同一口径递进：Q1 生成年度总量约束下的日级形态，Q2 将其外推为 2026 年分位情景，Q3 将每个情景换算为资源需求并求可行配置，Q4 只更新受扰动日期的需求参数后沿用 Q3 的目标和约束重优化。因此，后一问不会重新定义前一问的游客规模。
+\begin{figure}[H]\centering
+\setlength{\fboxsep}{7pt}
+\fbox{\parbox{0.82\textwidth}{\centering
+\textbf{年度官方总量与日级相对压力}\quad$\Longrightarrow$\quad
+\textbf{2026 年分位客流情景}\\[-1pt]
+$\Longrightarrow$\quad\textbf{泊位--接驳--人员配置}\quad$\Longrightarrow$\quad
+\textbf{活动/降雨下的重优化}\\[-1pt]
+\small Q1：尺度统一 \quad Q2：预测与区间 \quad Q3：资源决策 \quad Q4：扰动更新}}
+\caption{四问的数据流、模型流与决策流}\label{fig:workflow}
+\end{figure}
+
 \subsection{问题一：多尺度客流时序构建}
 \subsubsection{相对压力层与年度尺度层}
 对片区压力取对数变换 $z_{r,t}=\log(1+F_{r,t})$，构建
@@ -66,6 +83,8 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \subsubsection{结果与解释}
 2023 年和 2024 年全市官方国内游客量分别为 80,255.2 千人次和 89,457.2 千人次\cite{qhdstat}。图\ref{fig:q1annual}反映长期恢复趋势；图\ref{fig:q1pressure}用于识别三区的时季高压窗口，而非比较三区真实人数大小。未上榜景点被保留为左删失信息，避免零值偏差。
 
+尺度校准包含两项可复核检查：其一，式(2)使每个年度的日级估计之和等于该年度官方总量，故不会偏离绝对尺度；其二，片区序列只承担相对形态识别，范围不一致的景区报道不纳入误差计算。该处理将“绝对量是否可信”和“日级形态是否合理”分开检验，避免用少量报道锚点伪造连续实测客流。
+
 \begin{figure}[H]\centering
 \includegraphics[width=.88\textwidth]{q1_city_annual_trend.png}
 \caption{秦皇岛全市年度国内游客量及趋势}\label{fig:q1annual}
@@ -79,27 +98,29 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \subsubsection{年度与日级预测}
 年度层比较对数趋势、上一年朴素法和近期中位增长法；日级层以 2024 年 149 条去重片区--日期观测为留出集，比较季节--日历 Ridge、动态 Ridge 和历史星期中位数。动态模型的片区搜索滞后由预预测期真实观测选择，北戴河、海港--阿那亚、山海关分别采用 1、3、2 日滞后。为避免单一全局不确定性掩盖片区差异，对三区分别实施 split-conformal 校准。
 
-\begin{table}[H]\centering
+\begin{table}[H]\centering\small
+\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{预测模型验证结果}\label{tab:q2valid}
-\begin{tabular}{lrrr}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lrrr@{}}\toprule
 模型 & MAE & RMSE & sMAPE(\%)\\ \midrule
 年度：近期中位增长 & 11,331,292 & 24,008,187 & 24.67\\
 日级：季节--日历 Ridge & 0.959 & 1.565 & 67.96\\
 日级：动态 Ridge & 0.918 & 1.504 & 64.30\\
 日级：历史星期中位数 & 1.160 & 2.047 & 65.90\\ \bottomrule
-\end{tabular}
+\end{tabular*}
 \end{table}
 
 近期中位增长法给出 2026 年全市点预测 9,971.43 万人次。动态 Ridge 的误差最低，作为日级基准；其区间覆盖率为 0.899。山海关的相对校准半径为 1.572，下界出现零截断，表示高不确定性而非零需求。
 
-\begin{table}[H]\centering
+\begin{table}[H]\centering\small
+\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{2026 年暑期日峰值分位情景（人次）}\label{tab:q2peak}
-\begin{tabular}{lrrr}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lrrr@{}}\toprule
 片区 & $q_{10}$ & $q_{50}$ & $q_{90}$\\ \midrule
 北戴河 & 52,041 & 127,462 & 202,883\\
 海港--阿那亚 & 19,230 & 58,204 & 97,179\\
 山海关 & 0 & 135,474 & 348,466\\ \bottomrule
-\end{tabular}
+\end{tabular*}
 \end{table}
 \begin{figure}[H]\centering
 \includegraphics[width=.86\textwidth]{q2_summer_regional_daily_forecast.png}
@@ -107,6 +128,13 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \end{figure}
 
 \subsection{问题三：停车、接驳与人员协同配置}
+\subsubsection{决策变量、目标与约束}
+对任一片区--日期情景，令 $p_d,b_d,n_d$ 分别表示可调用的临时泊位、接驳车辆和三班制人员班次；令 $u_d^P,u_d^B,u_d^N$ 表示停车、接驳和人员的服务缺口。模型以资源投入与服务不足之间的可解释折中为目标：
+\begin{equation}
+\min J_d=c_Pp_d+c_Bb_d+c_Nn_d+\lambda_Pu_d^P+\lambda_Bu_d^B+\lambda_Nu_d^N.
+\end{equation}
+其约束分别为 $P_d^{\mathrm{perm}}+p_d+u_d^P\ge P_d$、$\kappa b_dH/\tau+u_d^B\ge D_d^{\mathrm{sh}}$ 和 $N_d^{\mathrm{base}}+n_d+u_d^N\ge N_d^{\mathrm{req}}$；其中 $\kappa$ 为有效单车运力、$H/\tau$ 为高峰窗内可完成的班次。所有决策变量非负且按预设离散档位取值。已公开的节点泊位数进入 $P_d^{\mathrm{perm}}$；其余容量和运力只作为情景参数，故式(3)输出的是规划配置而非实际排班台账。
+
 \subsubsection{需求换算与离散优化}
 设 $V_d$ 为日级游客规模情景，私家车比例为 $\alpha$，平均同行人数为 $o$，高峰到达比例为 $\pi$，停留时间为 $h$，高峰窗口为 $H$，则高峰泊位需求为
 \begin{equation}
@@ -116,31 +144,38 @@ P_d=\left\lceil\frac{V_d\alpha}{o}\pi\frac{h}{H}\right\rceil.
 
 北戴河 2024 年暑期旅游公交日间 15 分钟班距作为服务水平事实锚点\cite{bdhbus}；山海关火车站--景区入口的 2026 年 30 分钟班距仅作外部参照\cite{shgbus}，因范围不同不覆盖古城核心情景参数。停车占用报道未进入模型，因为其缺少与三区范围一致的连续逐时占用和泊位口径。
 
-\begin{table}[H]\centering
+\begin{table}[H]\centering\small
+\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{Q3 关键资源需求情景}\label{tab:q3result}
-\begin{tabular}{llrrrr}\toprule
-片区 & 情景 & 峰值泊位需求 & 接驳车辆 & 人员班次 & 停车外溢日数\\ \midrule
-北戴河 & 中位 & 9,389 & 34 & 291 & 0\\
-北戴河 & 高压 & 27,694 & 100 & 583 & 55\\
-海港--阿那亚 & 中位 & 3,898 & 10 & 125 & 229\\
-海港--阿那亚 & 高压 & 12,245 & 38 & 263 & 365\\
-山海关 & 中位 & 9,980 & 22 & 295 & 93\\
-山海关 & 高压 & 47,566 & 137 & 966 & 249\\ \bottomrule
-\end{tabular}
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lrrrr@{}}\toprule
+片区--情景 & 峰值泊位需求 & 接驳车辆 & 人员班次 & 停车外溢日数\\ \midrule
+北戴河--中位 & 9,389 & 34 & 291 & 0\\
+北戴河--高压 & 27,694 & 100 & 583 & 55\\
+海港--阿那亚--中位 & 3,898 & 10 & 125 & 229\\
+海港--阿那亚--高压 & 12,245 & 38 & 263 & 365\\
+山海关--中位 & 9,980 & 22 & 295 & 93\\
+山海关--高压 & 47,566 & 137 & 966 & 249\\ \bottomrule
+\end{tabular*}
 \end{table}
 
 表\ref{tab:q3result}中的外溢不是对新增停车供给的断言，而是应由外圈 P+R、预约、错峰或限流承接的管理需求。山海关 2,225 个具名古城节点泊位仅是局部硬约束，不代表全区总容量。
 
+将数值结果转为执行动作时，停车外溢日数大于零即触发外围 P+R、预约或分时入区；接驳约束紧张时优先增加备用车辆并缩短高峰班距；人员缺口则以中班增援覆盖入口、停车和驾驶三类岗位。该映射只说明资源何时应被调用，不把模型建议表述为已经发生的运营投入。
+
 \subsection{问题四：活动与降雨场景重优化}
+\subsubsection{模型更新与反事实求解}
+Q4 不另起一套资源模型，而是以 Q3 的基线日需求 $V_d$ 为起点，仅更新受扰动日的客流参数：大型活动使用 $V_d^{(c)}=V_d(1+g_d^{(c)})$ 描述预热--峰值--余波，连续降雨使用 $V_d^{(c)}=V_d(1-\rho_d^{(c)})$ 描述递进抑制；未受扰动日期保持基线值。将 $V_d^{(c)}$ 代入式(3)的需求换算和约束，得到 $x_d^{(c)}=(p_d^{(c)},b_d^{(c)},n_d^{(c)})$，并与固定基线方案 $x_d^{(0)}$ 比较最大服务缺口、资源成本和关键资源峰值。故 Q4 的差异可明确归因于场景需求更新，而非更换目标函数或评价口径。
+
 对北戴河设置暑期大型活动的预热--峰值--余波扰动，对山海关设置连续五日降雨下的递进需求衰减。每个受扰日均与固定基线方案比较，并重新配置可变泊位、接驳和人员。
 
-\begin{table}[H]\centering
+\begin{table}[H]\centering\small
+\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{反事实场景的重优化结果}\label{tab:q4result}
-\begin{tabular}{lrrrrr}\toprule
-场景 & 基线最大服务缺口 & 重优化成本 & 重优化损失 & 最大接驳车辆 & 最大人员班次\\ \midrule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lccccc@{}}\toprule
+场景 & \shortstack{基线最大\\服务缺口} & \shortstack{资源\\成本} & \shortstack{服务\\损失} & \shortstack{接驳车辆\\（最大）} & \shortstack{人员班次\\（最大）}\\ \midrule
 活动冲击 & 0.183 & 2.200 & 0.000 & 45 & 392\\
 连续降雨 & 0.259 & 2.200 & 0.099 & 22 & 295\\ \bottomrule
-\end{tabular}
+\end{tabular*}
 \end{table}
 
 灵敏度排序显示，接驳分担率、活动强度和私家车比例最影响最大服务缺口。因此活动前两日应根据预售和热度启动 P+R、备用接驳与中班增援；降雨情景则应收缩可变运力，但保留排水、应急引导、咨询和无障碍交通的最低班组。以中位 VOT 计，8 月 8 日活动冲击下固定基线方案的最大游客时间损失为 146,996 元，重优化后降为 0；该数为情景时间损失估计，不是运营现金流或游客赔付。图\ref{fig:q4sensitivity}给出五项情景参数对最大服务缺口的影响排序。

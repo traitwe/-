@@ -28,6 +28,18 @@ def _score(actual: pd.Series, prediction: pd.Series) -> dict[str, float]:
     return {"mae": float(np.abs(residual).mean()), "rmse": float(np.sqrt(np.mean(residual**2))), "smape": float(100.0 * np.mean(np.abs(residual) / denominator))}
 
 
+def q2_paper_figure_labels() -> dict[str, str]:
+    """Return the Chinese, title-free labels used by paper figures."""
+    return {
+        "monthly_x": "月份",
+        "monthly_y": "年度总量约束游客规模估计（人次）",
+        "monthly_title": "",
+        "summer_x": "日期",
+        "summer_y": "锚点约束游客规模估计（人次）",
+        "summer_title": "",
+    }
+
+
 def apply_relative_split_conformal_interval(
     prediction: pd.DataFrame,
     calibration_actual: pd.Series,
@@ -320,21 +332,25 @@ def _daily_comparison(regional: pd.DataFrame, observed: pd.DataFrame, covariates
 def build_q2_diagnostic_figures(monthly: pd.DataFrame, daily: pd.DataFrame, output_directory: str | Path) -> None:
     """Render two compact paper figures from forecast tables, never as observed counts."""
     output = Path(output_directory); output.mkdir(parents=True, exist_ok=True)
+    labels = q2_paper_figure_labels()
+    plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+    plt.rcParams["axes.unicode_minus"] = False
     figure, axis = plt.subplots(figsize=(7.2, 3.6))
     axis.bar(monthly["month"], monthly["visitor_estimate"], color="#4C78A8")
-    axis.set(xlabel="Month", ylabel="Estimated visitors", title="City monthly forecast constrained by annual total")
+    axis.set(xlabel=labels["monthly_x"], ylabel=labels["monthly_y"], title=labels["monthly_title"])
     if {"annual_forecast_lower", "annual_forecast_upper"}.issubset(monthly.columns):
-        interval = f"Annual 90% interval: {monthly['annual_forecast_lower'].iloc[0]:,.0f}–{monthly['annual_forecast_upper'].iloc[0]:,.0f}"
+        interval = f"年度 90% 预测区间：{monthly['annual_forecast_lower'].iloc[0]:,.0f}–{monthly['annual_forecast_upper'].iloc[0]:,.0f}"
         axis.text(0.02, 0.95, interval, transform=axis.transAxes, va="top")
     figure.tight_layout(); figure.savefig(output / "q2_city_monthly_forecast.png", dpi=220); plt.close(figure)
     frame = daily.copy(); frame["date"] = pd.to_datetime(frame["date"], errors="raise")
     frame = frame.loc[frame["date"].dt.month.isin([7, 8])]
     figure, axis = plt.subplots(figsize=(7.2, 3.6))
+    region_labels = {"BDH": "北戴河", "HGA": "海港--阿那亚", "SHG": "山海关"}
     for region, group in frame.groupby("region_code"):
         group = group.sort_values("date")
-        axis.plot(group["date"], group["visitor_estimate_q50"], label=str(region))
+        axis.plot(group["date"], group["visitor_estimate_q50"], label=region_labels.get(str(region), str(region)))
         axis.fill_between(group["date"], group["visitor_estimate_q10"], group["visitor_estimate_q90"], alpha=0.16)
-    axis.set(xlabel="Date", ylabel="Anchor-constrained estimated visitors", title="Summer regional daily forecast: 10%–90% interval")
+    axis.set(xlabel=labels["summer_x"], ylabel=labels["summer_y"], title=labels["summer_title"])
     axis.legend(ncol=3, fontsize=8); figure.autofmt_xdate(); figure.tight_layout()
     figure.savefig(output / "q2_summer_regional_daily_forecast.png", dpi=220); plt.close(figure)
 

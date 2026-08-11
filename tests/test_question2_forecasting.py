@@ -316,3 +316,13 @@ def test_q2_diagnostic_figures_are_created_from_forecast_tables(tmp_path):
 
     assert (tmp_path / "q2_city_monthly_forecast.png").exists()
     assert (tmp_path / "q2_summer_regional_daily_forecast.png").exists()
+
+
+def test_q2_paper_figure_labels_are_chinese_and_titless():
+    from src.analysis.q2_forecast_outputs import q2_paper_figure_labels
+
+    labels = q2_paper_figure_labels()
+
+    assert labels["summer_x"] == "日期"
+    assert labels["summer_y"] == "锚点约束游客规模估计（人次）"
+    assert labels["summer_title"] == ""
