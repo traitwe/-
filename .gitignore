@@ -20,6 +20,8 @@ data/processed/*
 !data/processed/.gitkeep
 outputs/figures/*
 !outputs/figures/.gitkeep
+!outputs/figures/q1_city_annual_trend.png
+!outputs/figures/q1_regional_peak_pressure_2025.png
 outputs/tables/*
 !outputs/tables/.gitkeep
 outputs/results/*
