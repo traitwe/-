@@ -1,0 +1,18 @@
+﻿source_table,district_label,model_region_code,hotel_name,rooms,source_reliability,source_type,include_in_sample_total,verification_date,source_url,room_count_scope
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,海港区,HGA,秦皇岛香格里拉,323.0,A,品牌官网,1,2026-08-10,https://www.shangri-la.com/cn/qinhuangdao/shangrila/rooms-suites/,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,海港区,HGA,秦皇岛茂业中心假日酒店,294.0,A,品牌官网,1,2026-08-10,https://www.ihg.com/holidayinn/hotels/cn/zh/qinhuangdao/bpehn/hoteldetail,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,海港区,HGA,秦皇岛金梦海湾希尔顿欢朋酒店,195.0,A,品牌官网,1,2026-08-10,https://www.hilton.com/zh-hans/hotels/bpeqnhx-hampton-qinhuangdao-jinmeng-bay/events/,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,海港区,HGA,秦皇岛海港万豪万枫酒店,159.0,A,品牌官网,1,2026-08-10,https://www.marriott.com.cn/hotels/shpfi-fairfield-qinhuangdao-haigang/overview/,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,海港区,HGA,秦皇岛海港智选假日酒店,119.0,A,品牌官网,1,2026-08-10,https://www.ihg.com/holidayinnexpress/hotels/cn/zh/qinhuangdao/bpeqi/hoteldetail,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,海港/开发区,HGA,秦皇岛和信基业万怡酒店,190.0,B,OTA交叉,1,2026-08-10,https://tw.hotels.com/ho1779809600/qin-huang-dao-he-xin-ji-ye-wan-yi-jiu-dian-qin-huang-dao-zhong-guo/,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,北戴河区,BDH,秦皇岛北戴河喜来登酒店,243.0,A-/B+,OTA/公开资料交叉,1,2026-08-10,https://www.expedia.com/cn/Qinhuangdao-Hotels-Sheraton-Qinhuangdao-Beidaihe-Hotel.h6385874.Hotel-Information,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,北戴河新区,HGA,秦皇岛万豪度假酒店,283.0,A,品牌官网,1,2026-08-10,https://www.marriott.com.cn/hotels/bpemc-qinhuangdao-marriott-resort/overview/,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,北戴河新区/如是海,HGA,洲至奢选北戴河如是海酒店,288.0,A,品牌官网,1,2026-08-10,https://www.ihg.com/vignettecollection/hotels/cn/zh/qinhuangdao/bpebr/hoteldetail,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,阿那亚,HGA,阿那亚安澜酒店,491.0,B,OTA交叉,1,2026-08-10,https://www.expedia.com/cn/Qinhuangdao-Hotels-Anaya-Anlan-Hotel.h33451609.Hotel-Information,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,阿那亚,HGA,阿那亚Sukha苏卡酒店,325.0,B+,权威媒体,1,2026-08-10,https://www.cntraveler.com.cn/news/news_1432ae1e5d224f04.html,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,阿那亚,HGA,阿那亚澜汐酒店,83.0,B,OTA,1,2026-08-10,https://www.wingontravel.com/hotel/detail-changli-128312388/anaya-lanxi-hotel/,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,阿那亚,HGA,EOSO云颂酒店,12.0,B+,媒体/酒店平台,1,2026-08-10,https://www.vogue.com.cn/living/brand_news/news_103g04463249bd51.html,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,阿那亚,HGA,犬舍酒店,33.0,B+,建筑/媒体资料,1,2026-08-10,https://news.dichan.sina.com.cn/Designx/d6905_m.html,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,阿那亚,HGA,A HOTEL,54.0,B-,较早公开资料,1,2026-08-10,https://wapbaike.baidu.com/tashuo/browse/content?id=78a8591e50f68af8a8bb2349,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,阿那亚,HGA,NOA RESORT诺岸远近酒店,79.0,B,设计资料,1,2026-08-10,https://anli.justeasy.cn/works/case/bkd2R0xNQVg3N3Z2UnYrdnY5aFBTZz09.html,verified_sample_hotel
+qinhuangdao_hotel_room_ledger_2026-08-10.csv,阿那亚整体,HGA,阿那亚度假酒店体系,,A,官方总体资料,0,2026-08-10,https://www.aranya.cc/quan-wei-yun-ying/jiu-dian.html,hotel_system_count_only_not_room_total

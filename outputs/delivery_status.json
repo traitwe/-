@@ -1,8 +1,9 @@
 {
-  "delivery_mode": "full_model",
-  "delivery_root": "outputs",
+  "delivery_mode": "verified_artifact_fallback",
+  "delivery_root": "outputs/verified_artifacts",
   "missing_questions": [],
   "missing_artifacts": {},
-  "scope_note": "Q1-Q4 full model outputs are present.",
-  "generated_at_utc": "2026-08-11T02:12:21+00:00"
+  "failed_script": "build_censored_observation_diagnostics.py",
+  "scope_note": "A mainline script failed. Use only the prior verified snapshot; current outputs may be partial.",
+  "generated_at_utc": "2026-08-12T02:45:52+00:00"
 }

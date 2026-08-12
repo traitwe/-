@@ -15,7 +15,7 @@ from src.models.scale_calibration import calibrate_daily_visitor_scale
 
 
 def main() -> None:
-    model_input_dir = PROJECT_ROOT / "data" / "model_input"
+    model_input_dir = PROJECT_ROOT / "data" / "runtime" / "model_input"
     pressure = pd.read_csv(model_input_dir / "daily_region_pressure_baseline_2023_2025.csv")
     anchor_ledger = pd.read_csv(model_input_dir / "calibration_anchor_scope_ledger.csv")
     estimates, anchor_fit = calibrate_daily_visitor_scale(pressure, anchor_ledger)

@@ -1,4 +1,0 @@
-﻿region_code,selected_search_column,selected_lag_days,observed_rows,spearman_correlation,selection_status
-BDH,theme_destination_lag_1,1,168,0.3510425663289634,selected_from_observed_training_dates
-HGA,theme_destination_lag_3,3,124,0.39049276635660596,selected_from_observed_training_dates
-SHG,theme_destination_lag_2,2,219,0.597715514550513,selected_from_observed_training_dates

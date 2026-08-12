@@ -15,7 +15,7 @@ from src.features.censored_diagnostics import build_censored_observation_diagnos
 
 
 def main() -> None:
-    model_input_dir = PROJECT_ROOT / "data" / "model_input"
+    model_input_dir = PROJECT_ROOT / "data" / "runtime" / "model_input"
     panel = pd.read_csv(model_input_dir / "censored_attraction_observation_panel.csv", encoding="utf-8-sig")
     diagnostics = build_censored_observation_diagnostics(panel)
     diagnostics.to_csv(

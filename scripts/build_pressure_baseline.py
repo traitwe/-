@@ -15,8 +15,8 @@ from src.models.pressure_baseline import fit_pressure_baseline, rolling_time_val
 
 
 def main() -> None:
-    model_input_dir = PROJECT_ROOT / "data" / "model_input"
-    clean_dir = PROJECT_ROOT / "data" / "clean"
+    model_input_dir = PROJECT_ROOT / "data" / "runtime" / "model_input"
+    clean_dir = PROJECT_ROOT / "data" / "runtime" / "clean"
     panel = pd.read_csv(model_input_dir / "censored_attraction_observation_panel.csv")
     calendar = pd.read_csv(clean_dir / "calendar_2015_2026.csv")
     weather = pd.read_csv(clean_dir / "daily_weather_2015_2025.csv")

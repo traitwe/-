@@ -1,4 +1,0 @@
-vot_scenario,annual_disposable_income_cny,annual_hours_assumption,income_multiplier,vot_cny_per_hour,parking_delay_hours,shuttle_delay_hours,staff_delay_hours,source_basis,parameter_note
-low,48700,2000,0.5,12.175,0.5,0.25,0.1,qhd_2024_urban_disposable_income,"Low scenario: 0.5 times income-derived hourly anchor; delay values are planning sensitivity parameters."
-central,48700,2000,1.0,24.35,0.5,0.25,0.1,qhd_2024_urban_disposable_income,"Central scenario: 48,700/2,000 CNY per person-hour; not a stated willingness-to-pay survey result."
-high,48700,2000,1.5,36.525,0.5,0.25,0.1,qhd_2024_urban_disposable_income,"High scenario: 1.5 times income-derived hourly anchor; used only for sensitivity bounds."

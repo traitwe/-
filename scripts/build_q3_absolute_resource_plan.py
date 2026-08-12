@@ -21,13 +21,13 @@ def season_from_month(month: int) -> str:
     return "low_season"
 
 
-forecast = pd.read_csv(ROOT / "outputs/question2_analysis/q2_region_daily_forecast_2026.csv", encoding="utf-8-sig")
-scenarios = pd.read_csv(ROOT / "data/model_input/q3_absolute_planning_scenarios.csv", encoding="utf-8-sig")
-vot_scenarios = pd.read_csv(ROOT / "data/model_input/q3_vot_scenarios.csv", encoding="utf-8-sig")
+forecast = pd.read_csv(ROOT / "outputs/runtime/question2_analysis/q2_region_daily_forecast_2026.csv", encoding="utf-8-sig")
+scenarios = pd.read_csv(ROOT / "data/runtime/model_input/q3_absolute_planning_scenarios.csv", encoding="utf-8-sig")
+vot_scenarios = pd.read_csv(ROOT / "data/runtime/model_input/q3_vot_scenarios.csv", encoding="utf-8-sig")
 daily = build_all_scenario_plans(forecast, scenarios)
 daily = daily.merge(scenarios.loc[:, ["region_code", "demand_scenario", "parameter_basis", "parameter_note", "average_party_size", "transfer_share"]], on=["region_code", "demand_scenario"], how="left", validate="many_to_one")
 daily["season"] = pd.to_datetime(daily["date"]).dt.month.map(season_from_month)
-output = ROOT / "outputs/question3_analysis"
+output = ROOT / "outputs/runtime/question3_analysis"
 output.mkdir(parents=True, exist_ok=True)
 daily.to_csv(output / "q3_absolute_daily_resource_plan_2026.csv", index=False, encoding="utf-8-sig")
 

@@ -1,6 +1,0 @@
-﻿semantic_family,keyword_rule,poi_count,share_of_purchased_poi,interpretation
-hotel_accommodation,酒店|宾馆|民宿|旅馆|客栈|度假村,6452,0.06502131433351137,name_keyword_proxy_for_spatial_coverage_not_an_operating_capacity
-parking,停车场|停车,2116,0.021324411210432433,name_keyword_proxy_for_spatial_coverage_not_an_operating_capacity
-attraction_recreation,景区|公园|海滩|浴场|博物馆|长城|动物园|乐园|广场,1640,0.01652742645799111,name_keyword_proxy_for_spatial_coverage_not_an_operating_capacity
-transport,车站|公交|码头|机场|高铁|铁路,1901,0.01915770591258604,name_keyword_proxy_for_spatial_coverage_not_an_operating_capacity
-all_purchased_poi,not_applicable,99229,1.0,raw purchased POI count

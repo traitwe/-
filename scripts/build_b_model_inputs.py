@@ -15,9 +15,9 @@ from src.features.model_inputs import build_model_input_tables
 from src.features.anchor_selection import classify_direct_region_anchors
 
 
-CLEAN_DIR = PROJECT_ROOT / "data" / "clean"
+CLEAN_DIR = PROJECT_ROOT / "data" / "runtime" / "clean"
 ANCHOR_DIR = CLEAN_DIR / "raw_cleaned"
-OUTPUT_DIR = PROJECT_ROOT / "data" / "model_input"
+OUTPUT_DIR = PROJECT_ROOT / "data" / "runtime" / "model_input"
 
 REGION_MAP = {
     "Qinhuangdao_City": "CITY",

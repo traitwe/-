@@ -1,3 +1,5 @@
+"""Transform sealed Q1 outputs into the compact figures and tables used in the paper."""
+
 from pathlib import Path
 
 import matplotlib

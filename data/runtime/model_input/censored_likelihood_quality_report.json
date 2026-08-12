@@ -1,0 +1,14 @@
+{
+  "continuous_rows": 3288,
+  "regions": [
+    "BDH",
+    "HGA",
+    "SHG"
+  ],
+  "objective": 596.1934048629751,
+  "sampled_groups": 505,
+  "dynamic_rho_adjacent_sample": 0.5233799981910334,
+  "mean_absolute_difference_vs_ridge": 0.9355792049912511,
+  "comparison_note": "same-sampled-day output difference; not a rolling forecast error",
+  "unsampled_day_projection": "joint_covariate_region_mean; dynamic innovation set to zero"
+}

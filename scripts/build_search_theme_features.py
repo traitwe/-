@@ -13,8 +13,8 @@ from src.features.search_keyword_rules import qinhuangdao_search_keyword_rules
 
 
 def main() -> None:
-    source = ROOT / "data" / "clean" / "daily_search_heat_17_keywords_2016_2026.csv"
-    output_dir = ROOT / "data" / "model_input"
+    source = ROOT / "data" / "runtime" / "clean" / "daily_search_heat_17_keywords_2016_2026.csv"
+    output_dir = ROOT / "data" / "runtime" / "model_input"
     output_dir.mkdir(parents=True, exist_ok=True)
     heat = pd.read_csv(source, encoding="utf-8-sig")
     rules = qinhuangdao_search_keyword_rules()

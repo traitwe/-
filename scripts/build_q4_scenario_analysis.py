@@ -10,12 +10,12 @@ sys.path.insert(0, str(ROOT))
 from src.analysis.q4_scenario_outputs import compare_baseline_with_reoptimisation, one_at_a_time_sensitivity
 from src.models.question4_scenarios import apply_continuous_rain, apply_event_pulse
 
-out = ROOT / "outputs/question4_analysis"; out.mkdir(parents=True, exist_ok=True)
+out = ROOT / "outputs/runtime/question4_analysis"; out.mkdir(parents=True, exist_ok=True)
 plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
 plt.rcParams["axes.unicode_minus"] = False
-base = pd.read_csv(ROOT / "outputs/question3_analysis/q3_absolute_daily_resource_plan_2026.csv", encoding="utf-8-sig")
-params = pd.read_csv(ROOT / "data/model_input/q3_absolute_planning_scenarios.csv", encoding="utf-8-sig")
-vot = pd.read_csv(ROOT / "data/model_input/q3_vot_scenarios.csv", encoding="utf-8-sig")
+base = pd.read_csv(ROOT / "outputs/runtime/question3_analysis/q3_absolute_daily_resource_plan_2026.csv", encoding="utf-8-sig")
+params = pd.read_csv(ROOT / "data/runtime/model_input/q3_absolute_planning_scenarios.csv", encoding="utf-8-sig")
+vot = pd.read_csv(ROOT / "data/runtime/model_input/q3_vot_scenarios.csv", encoding="utf-8-sig")
 
 def scenario_dict(region: str) -> dict:
     return params[(params.region_code == region) & (params.demand_scenario == "central")].iloc[0].to_dict()

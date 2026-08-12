@@ -1,3 +1,0 @@
-﻿scenario,window_start,window_end,days,max_baseline_gap,max_baseline_shuttles,max_reoptimized_shuttles,max_baseline_staff,max_reoptimized_staff,max_reoptimized_temporary_spaces,mean_reoptimized_relative_cost,mean_reoptimized_experience_loss
-beidaihe_event_window,2026-08-06,2026-08-10,5,0.1832766439909297,33,45.0,282,392.0,0.0,2.2,0.0
-shanhaiguan_rain_window,2026-07-15,2026-07-19,5,0.15683008091385056,18,9.0,243,125.0,0.0,2.2,0.35098139428800984

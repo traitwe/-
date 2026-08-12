@@ -1,4 +1,4 @@
-"""Checkpointed paper-delivery state with a recoverable verified-artifact path."""
+﻿"""Checkpointed paper-delivery state with a recoverable verified-artifact path."""
 
 from __future__ import annotations
 
@@ -10,25 +10,25 @@ import shutil
 
 REQUIRED_ARTIFACTS: dict[str, tuple[str, ...]] = {
     "Q1": (
-        "outputs/question1_analysis/q1_city_daily_annual_constrained.csv",
-        "outputs/question1_analysis/q1_analysis_quality_report.json",
+        "outputs/runtime/question1_analysis/q1_city_daily_annual_constrained.csv",
+        "outputs/runtime/question1_analysis/q1_analysis_quality_report.json",
     ),
     "Q2": (
-        "outputs/question2_analysis/q2_annual_model_comparison.csv",
-        "outputs/question2_analysis/q2_region_daily_forecast_2026.csv",
-        "outputs/question2_analysis/q2_daily_model_comparison.csv",
-        "outputs/question2_analysis/q2_daily_conformal_calibration_2026.csv",
+        "outputs/runtime/question2_analysis/q2_annual_model_comparison.csv",
+        "outputs/runtime/question2_analysis/q2_region_daily_forecast_2026.csv",
+        "outputs/runtime/question2_analysis/q2_daily_model_comparison.csv",
+        "outputs/runtime/question2_analysis/q2_daily_conformal_calibration_2026.csv",
     ),
     "Q3": (
-        "outputs/question3_analysis/q3_absolute_daily_resource_plan_2026.csv",
-        "outputs/question3_analysis/q3_absolute_daily_optimized_plan_2026.csv",
-        "outputs/question3_analysis/q3_absolute_resource_sensitivity_2026.csv",
+        "outputs/runtime/question3_analysis/q3_absolute_daily_resource_plan_2026.csv",
+        "outputs/runtime/question3_analysis/q3_absolute_daily_optimized_plan_2026.csv",
+        "outputs/runtime/question3_analysis/q3_absolute_resource_sensitivity_2026.csv",
     ),
     "Q4": (
-        "outputs/question4_analysis/q4_event_counterfactual_2026.csv",
-        "outputs/question4_analysis/q4_rain_counterfactual_2026.csv",
-        "outputs/question4_analysis/q4_baseline_reoptimization_summary_2026.csv",
-        "outputs/question4_analysis/q4_robustness_sensitivity_ranking.csv",
+        "outputs/runtime/question4_analysis/q4_event_counterfactual_2026.csv",
+        "outputs/runtime/question4_analysis/q4_rain_counterfactual_2026.csv",
+        "outputs/runtime/question4_analysis/q4_baseline_reoptimization_summary_2026.csv",
+        "outputs/runtime/question4_analysis/q4_robustness_sensitivity_ranking.csv",
     ),
 }
 
@@ -77,7 +77,7 @@ def freeze_verified_artifacts(root: Path) -> Path:
     if snapshot.exists():
         shutil.rmtree(snapshot)
     for directory in ("question1_analysis", "question2_analysis", "question3_analysis", "question4_analysis"):
-        shutil.copytree(root / "outputs" / directory, snapshot / directory)
+        shutil.copytree(root / "outputs" / "runtime" / directory, snapshot / directory)
     return snapshot
 
 
@@ -112,3 +112,4 @@ def write_delivery_status(root: Path, status: dict[str, object] | None = None) -
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return destination
+

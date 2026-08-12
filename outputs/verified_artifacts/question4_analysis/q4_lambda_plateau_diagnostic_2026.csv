@@ -1,8 +1,0 @@
-﻿risk_penalty,mean_relative_cost,mean_experience_loss,max_temporary_spaces,max_shuttle_vehicles,max_staff_shifts,same_as_previous,diagnostic
-0.25,0.0,2.2,0.0,0.0,0.0,False,resource_configuration_switch
-0.5,0.0,2.2,0.0,0.0,0.0,True,discrete_solution_plateau__not_continuous_marginal_effect
-0.75,0.0,2.2,0.0,0.0,0.0,True,discrete_solution_plateau__not_continuous_marginal_effect
-1.0,0.297695621838479,1.9023043781615208,0.0,8.0,101.0,False,resource_configuration_switch
-1.25,2.2,0.0,0.0,45.0,392.0,False,resource_configuration_switch
-1.5,2.2,0.0,0.0,45.0,392.0,True,discrete_solution_plateau__not_continuous_marginal_effect
-2.0,2.2,0.0,0.0,45.0,392.0,True,discrete_solution_plateau__not_continuous_marginal_effect
