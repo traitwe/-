@@ -31,3 +31,16 @@ def test_final_program_builder_writes_four_short_appendix_snippets(tmp_path):
         "question1_core.py", "question2_core.py", "question3_core.py", "question4_core.py",
     ]
     assert all(10 <= len(path.read_text(encoding="utf-8").splitlines()) <= 150 for path in snippets)
+
+    q1 = (tmp_path / "appendix_core/question1_core.py").read_text(encoding="utf-8")
+    q2 = (tmp_path / "appendix_core/question2_core.py").read_text(encoding="utf-8")
+    q3 = (tmp_path / "appendix_core/question3_core.py").read_text(encoding="utf-8")
+    q4 = (tmp_path / "appendix_core/question4_core.py").read_text(encoding="utf-8")
+    assert "def negative_log_posterior" in q1
+    assert "def calibrate_daily_visitor_scale" in q1
+    assert "def fit_daily_ridge_forecaster" in q2
+    assert "def apply_regional_relative_split_conformal_interval" in q2
+    assert "levels = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)" in q3
+    assert "objective\": relative_cost + risk_penalty * experience_loss" in q3
+    assert "def apply_event_pulse" in q4
+    assert "def compare_baseline_with_reoptimisation" in q4

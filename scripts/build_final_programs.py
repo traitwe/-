@@ -239,6 +239,27 @@ def compare_plan(baseline, shocked, scenario, resource_plan):
 }
 
 
+# Appendix code must be taken verbatim from the real model implementation.
+# Never use the earlier pedagogical examples as paper-facing source code.
+APPENDIX_FUNCTIONS: dict[str, tuple[tuple[str, tuple[str, ...]], ...]] = {
+    "question1_core.py": (
+        ("src/models/hierarchical_censored_pressure.py", ("negative_log_posterior",)),
+        ("src/models/scale_calibration.py", ("calibrate_daily_visitor_scale",)),
+    ),
+    "question2_core.py": (
+        ("src/models/question2_forecasting.py", ("fit_daily_ridge_forecaster",)),
+        ("src/analysis/q2_forecast_outputs.py", ("apply_regional_relative_split_conformal_interval",)),
+    ),
+    "question3_core.py": (
+        ("src/models/question3_absolute_optimizer.py", ("optimize_absolute_resources",)),
+    ),
+    "question4_core.py": (
+        ("src/models/question4_scenarios.py", ("apply_event_pulse", "apply_continuous_rain")),
+        ("src/analysis/q4_scenario_outputs.py", ("compare_baseline_with_reoptimisation",)),
+    ),
+}
+
+
 def _local_import_line_ranges(source: str) -> set[int]:
     tree = ast.parse(source)
     remove: set[int] = set()
@@ -265,6 +286,34 @@ def _inline_source(root: Path, relative_path: str) -> str:
     remove = _local_import_line_ranges(source)
     retained = ["" if index in remove else line for index, line in enumerate(lines, start=1)]
     return "\n\n" + "\n".join(retained) + "\n"
+
+
+def _extract_real_functions(root: Path, relative_path: str, function_names: tuple[str, ...]) -> str:
+    """Return verbatim top-level functions from the actual model implementation."""
+    source = (root / relative_path).read_text(encoding="utf-8-sig")
+    lines = source.splitlines()
+    functions = {
+        node.name: node for node in ast.parse(source).body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    missing = set(function_names).difference(functions)
+    if missing:
+        raise ValueError(f"{relative_path} is missing appendix functions: {sorted(missing)}")
+    return "\n\n".join(
+        "\n".join(lines[functions[name].lineno - 1:functions[name].end_lineno])
+        for name in function_names
+    )
+
+
+def _build_appendix_excerpt(root: Path, filename: str) -> str:
+    """Build a paper excerpt only from functions executed by the full model."""
+    parts = [
+        f"# {filename}: 以下函数从完整运行程序的真实实现原样摘取。",
+        "# 完整输入、输出与辅助函数见支撑材料中的 question*_model.py。",
+    ]
+    for relative_path, function_names in APPENDIX_FUNCTIONS[filename]:
+        parts.append(_extract_real_functions(root, relative_path, function_names))
+    return "\n\n".join(parts) + "\n"
 
 
 def build_final_programs(root: Path = PROJECT_ROOT, output_directory: Path | None = None) -> list[Path]:
@@ -297,8 +346,8 @@ def build_final_programs(root: Path = PROJECT_ROOT, output_directory: Path | Non
         paths.append(path)
     excerpt_directory = output / "appendix_core"
     excerpt_directory.mkdir(parents=True, exist_ok=True)
-    for filename, content in APPENDIX_CORE.items():
-        (excerpt_directory / filename).write_text(content, encoding="utf-8")
+    for filename in APPENDIX_FUNCTIONS:
+        (excerpt_directory / filename).write_text(_build_appendix_excerpt(root, filename), encoding="utf-8")
     return paths
 
 
