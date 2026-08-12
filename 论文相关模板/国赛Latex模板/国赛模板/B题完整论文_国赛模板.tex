@@ -53,11 +53,15 @@
 
 针对问题一，本文以官方年度国内游客量为绝对尺度，以景区排行观测、日历、天气和搜索主题构建三区连续日级相对旅游压力；对景区排行未上榜的记录采用左删失处理，将其作为低于展示阈值的信息纳入模型，避免误记为零客流。
 
-针对问题二，本文采用年度增长预测与片区动态 Ridge 预测相结合的方法，输出 2026 年全市年度规模和三区日级分位情景，并以分片区 split-conformal 校准报告预测不确定性。2026 年全市点预测为 9,971.43 万人次；北戴河、海港--阿那亚和山海关暑期日峰值的中位情景分别为 12.75 万、5.82 万和 13.55 万人次。
+针对问题二，本文采用年度增长预测与片区动态 Ridge 预测相结合的方法，输出 2026 年全市年度规模和三区日级分位情景，并以分片区 split-conformal 校准报告预测不确定性。2026 年全市点预测为 9,971.43 万人次；北戴河、海港--阿那亚和山海关暑期日峰值的中位情景分别为 12.72 万、5.81 万和 13.51 万人次。
+
+值得正视的是，受限于日级客流缺乏真实运营台账，动态 Ridge 模型留出集 sMAPE 为 60.41\%（MAE=0.860）。本文不以单点预测直接驱动决策，而是经分片区 split-conformal 校准（区间覆盖率 0.899）后，以 $q_{10}/q_{50}/q_{90}$ 三档分位情景驱动资源配置，将点预测误差转化为情景边界，规避其向决策的直接传导。
 
 针对问题三，本文将游客规模换算为停车泊位需求、接驳车辆需求和三班制人员需求，在停车容量、服务班距与班次覆盖约束下求解离散资源配置方案。高压情景下的停车缺口应由外圈 P+R、预约与错峰承接。
 
 针对问题四，本文对大型活动和连续降雨两类情景实施需求参数更新与重优化，验证既有资源方案的适配能力并给出调整方向。
+
+针对数据口径不齐的现实约束，本文作如下设计：以左删失 MAP 估计将 95.6\% 的榜单缺失转化为有效负向信息；跨量纲资源先标准化再加权；不确定性按片区分别进行 split-conformal 校准；对风险惩罚系数 $\lambda$ 作敏感性扫描发现平台区（$\lambda\ge1.25$ 后解不再变化），以严谨方式回应参数稳健性质疑。
 
 全文将日级客流、资源规模和成本均标注为锚点约束估计或情景规划量，区别于运营实测台账。
 
@@ -185,7 +189,7 @@ $\mathrm{VOT}$ & 游客时间价值 & （元/(人$\cdot$h)）\\
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{主线数据及使用口径}\label{tab:data}
-\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}p{2.8cm}p{1.6cm}p{2.0cm}p{4.0cm}@{}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}>{\centering\arraybackslash}p{2.8cm}>{\centering\arraybackslash}p{1.6cm}>{\centering\arraybackslash}p{2.0cm}>{\centering\arraybackslash}p{4.0cm}@{}}\toprule
 数据层 & 时间跨度 & 粒度 & 主线用途\\ \midrule
 全市国内游客量 & 2002--2024 & 年度 & 绝对尺度锚点与年度预测\\
 景区排行、天气、节假日、搜索主题 & 2023--2025（搜索扩展至2016--2026） & 日级 & 三区相对压力与日级协变量\\
@@ -215,11 +219,11 @@ $\Longrightarrow$\quad\textbf{泊位--接驳--人员配置}\quad$\Longrightarrow
 \subsubsection{左删失观测方程：把“未上榜”转化为负向信息}
 本文使用的景区排行数据收录排名靠前的景点某景点某日无记录属于其客流量未达当日展示阈值。实测显示：1{,}131 天的跨度内仅 371 天有观测，(景区$\times$日) 组合覆盖率仅 4.4\%；且旺季（7--8 月）日期覆盖率为 65.0\%，淡季（12--2 月）仅 17.9\%，两者相差 3.6 倍。
 
-若按随机缺失处理，淡季将因缺少低值观测而被系统性高估，季节振幅被压缩。为此，记景区 $i$ 在日期 $t$ 的观测指标为 $Z_{i,t}$，当日展示阈值为 $c_t$，构造左删失似然
+若按随机缺失处理，淡季将因缺少低值观测而被系统性高估，季节振幅被压缩。为此，记景区 $i$ 在日期 $t$ 的观测指标为 $Z_{i,t}$，当日展示阈值为 $c_t$；以片区截距 $\eta_{r(i)}$、景区偏置 $a_i$ 和共享尺度参数 $\sigma$ 构造左删失 MAP 估计
 \begin{equation}\label{eq:censor}
-\mathcal L=\prod_{(i,t)\in\mathcal O}\frac{1}{\sigma_i}\varphi\!\left(\frac{\log(1+Z_{i,t})-a_i-\lambda_iF_{r(i),t}}{\sigma_i}\right)\prod_{(i,t)\notin\mathcal O}\Phi\!\left(\frac{c_t-a_i-\lambda_iF_{r(i),t}}{\sigma_i}\right),
+\min_{\eta,a,\sigma}\; -\sum_{(i,t)\in\mathcal O}\log\!\left[\frac{1}{\sigma}\varphi\!\left(\frac{\log(1+Z_{i,t})-\eta_{r(i)}-a_i}{\sigma}\right)\right]-\sum_{(i,t)\notin\mathcal O}\log\Phi\!\left(\frac{c_t-\eta_{r(i)}}{\sigma}\right)+0.1\sum_i a_i^2 .
 \end{equation}
-其中 $\mathcal O$ 为有观测的组合，$\varphi,\Phi$ 分别为标准正态密度与分布函数。第二个连乘项使原本被丢弃的 95.6\% 组合转化为“压力低于阈值”的有效负向信息（假设 A4）。
+其中 $\mathcal O$ 为有观测的组合，$\varphi,\Phi$ 分别为标准正态密度与分布函数；最后一项为景区偏置的岭正则。第二个求和项使原本被丢弃的 95.6\% 组合转化为“压力低于阈值”的有效负向信息（假设 A4）。
 
 \subsubsection{相对压力层与年度尺度层}
 对片区压力取对数变换 $z_{r,t}=\log(1+F_{r,t})$，构建
@@ -246,7 +250,7 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{影响因子的标准化效应与排序}\label{tab:q1factor}
-\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}clrc@{}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}cccc@{}}\toprule
 排序 & 影响因子 & 标准化系数 & 方向\\ \midrule
 1 & 目的地搜索主题（滞后 1 日） & 0.2438 & 正\\
 2 & 法定节假日 & 0.0952 & 正\\
@@ -287,18 +291,18 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{预测模型验证结果}\label{tab:q2valid}
-\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lrrr@{}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}cccc@{}}\toprule
 模型 & MAE & RMSE & sMAPE(\%)\\ \midrule
 年度：近期中位增长 & 11,331,292 & 24,008,187 & 24.67\\
-日级：季节--日历 Ridge & 0.959 & 1.565 & 67.96\\
-日级：动态 Ridge & 0.918 & 1.504 & 64.30\\
+日级：季节--日历 Ridge & 0.897 & 1.548 & 63.65\\
+日级：动态 Ridge & 0.860 & 1.454 & 60.41\\
 日级：历史星期中位数 & 1.160 & 2.047 & 65.90\\ \bottomrule
 \end{tabular*}
 \end{table}
 
 近期中位增长法给出 2026 年全市点预测 9,971.43 万人次。动态 Ridge 的误差最低，作为日级基准；其区间覆盖率为 0.899。图\ref{fig:q2monthly}给出 2026 年全市月度预测走势，呈现明显的暑期单峰结构。
 
-为检验单一年份留出法的稳定性，另以 2024-04-01 和 2024-07-01 为滚动原点，各进行 92 日前向检验；每个原点的训练、游客指数--压力尺度换算与 split-conformal 校准均严格截断在原点之前。动态 Ridge 在全片区窗口的 WAPE 分别为 37.63\%（$n=36$）和 70.89\%（$n=83$），均低于季节--日历 Ridge 的 39.30\% 和 75.53\%。7--8 月子样本（$n=65$）的 WAPE 为 65.92\%。该附加检验仅条件于当期已实现的天气和滞后搜索量，且被解释变量仍是景区锚点约束指数，不将其宣传为事前实测客流预测精度。
+为检验单一年份留出法的稳定性，另以 2024-04-01 和 2024-07-01 为滚动原点，各进行 92 日前向检验；每个原点的训练、游客指数--压力尺度换算与 split-conformal 校准均严格截断在原点之前。动态 Ridge 在全片区窗口的 WAPE 分别为 36.62\%（$n=36$）和 60.11\%（$n=83$），均低于季节--日历 Ridge 的 38.53\% 和 64.61\%。7--8 月子样本（$n=65$）的 WAPE 为 57.57\%。该附加检验仅条件于当期已实现的天气和滞后搜索量，且被解释变量仍是景区锚点约束指数，不将其宣传为事前实测客流预测精度。
 
 \begin{figure}[H]\centering
 \includegraphics[width=.88\textwidth]{q2_city_monthly_forecast.png}
@@ -308,12 +312,12 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \subsubsection{消融实验：动态协变量的边际贡献}
 仅比较模型优劣不足以判断天气与搜索热度的边际价值，若不加区分，季节性效应可能被归因于动态协变量。为此在同一 2024 年留出集与同一尺度映射下作消融实验：移除天气与滞后搜索后退化为季节--日历模型，保留则为动态模型。
 
-结果显示，动态协变量使 MAE 改善 4.09\%、sMAPE 改善 3.66\%，改善幅度有限，表明秦皇岛客流的可预测部分主要来自日历结构，天气与网络热度的增量贡献较小。但天气与搜索通道仍需保留：问题二的天气突变偏差分析与问题四的连续降雨情景均依赖这两类变量。区间质量方面，季节--日历模型的覆盖率略高（0.913 对 0.899），但点估计误差更大，综合权衡后仍以动态模型为基准。
+结果显示，动态协变量使 MAE 改善 4.16\%、sMAPE 改善 5.10\%，改善幅度有限，表明秦皇岛客流的可预测部分主要来自日历结构，天气与网络热度的增量贡献较小。但天气与搜索通道仍需保留：问题二的天气突变偏差分析与问题四的连续降雨情景均依赖这两类变量。区间质量方面，季节--日历模型的覆盖率略高（0.906 对 0.899），但点估计误差更大，综合权衡后仍以动态模型为基准。
 
 \subsubsection{分片区区间校准}
-三区的波动特性差异显著，若用单一全局半径将掩盖这一差异。本文对每个片区分别以预测年之前的观测作 split-conformal 校准，得到相对半径：北戴河 0.592（校准样本 90 条）、海港--阿那亚 0.670（67 条）、山海关 1.572（27 条），最大与最小相差 2.7 倍。
+三区的波动特性差异显著，若用单一全局半径将掩盖这一差异。本文对每个片区分别以预测年之前的观测作 split-conformal 校准，得到相对半径：北戴河 0.591（校准样本 90 条）、海港--阿那亚 0.670（67 条）、山海关 2.475（26 条），最大与最小相差 4.2 倍。
 
-山海关的半径明显偏大源于其校准样本仅 27 条，小样本下的分位估计不稳定；其 $q_{10}$ 经非负截断后取零，表示该片区不确定性宽，不表示预测零需求（边界 B3）。这一结果同时提示：扩大山海关的观测采集是提升预测可用性的最直接途径。
+山海关的半径明显偏大源于其校准样本仅 26 条，小样本下的分位估计不稳定；其 $q_{10}$ 经非负截断后取零，表示该片区不确定性宽，不表示预测零需求（边界 B3）。这一结果同时提示：扩大山海关的观测采集是提升预测可用性的最直接途径。
 
 \subsubsection{天气突变对预测结果的偏差}
 以气候态日历日中位天气为基准情景，分别构造持续性强降雨（在基准降水上叠加增量）与极端高温（气温 $+5\,^\circ$C）两类突变，代入动态模型重新预测，量化偏差。
@@ -323,17 +327,17 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 由此得到两点管理含义：其一，\textbf{降雨是短期预测偏差的主导来源}，旺季资源预案必须包含降雨触发的下调机制，否则按晴天需求配置将造成大幅冗余；其二，\textbf{高温对滨海目的地并非负面因素}，不宜照搬内陆景区的高温处理经验。该偏差分析亦构成问题四连续降雨情景的参数依据。
 
 \subsubsection{暑期峰值区间}
-综合上述点预测与分片区校准，三区 2026 年暑期日峰值的分位情景见表\ref{tab:q2peak}，逐日走势与区间见图\ref{fig:q2summer}。北戴河与山海关的中位峰值接近（12.75 万与 13.55 万人次），但山海关的区间显著更宽，反映其观测基础薄弱。
+综合上述点预测与分片区校准，三区 2026 年暑期日峰值的分位情景见表\ref{tab:q2peak}，逐日走势与区间见图\ref{fig:q2summer}。北戴河与山海关的中位峰值接近（12.72 万与 13.51 万人次），但山海关的区间显著更宽，反映其观测基础薄弱。
 
 
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{2026 年暑期日峰值分位情景（人次）}\label{tab:q2peak}
-\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lrrr@{}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}cccc@{}}\toprule
 片区 & $q_{10}$ & $q_{50}$ & $q_{90}$\\ \midrule
-北戴河 & 52,041 & 127,462 & 202,883\\
-海港--阿那亚 & 19,230 & 58,204 & 97,179\\
-山海关 & 0 & 135,474 & 348,466\\ \bottomrule
+北戴河 & 51,991 & 127,177 & 202,363\\
+海港--阿那亚 & 19,190 & 58,099 & 97,008\\
+山海关 & 0 & 135,069 & 469,364\\ \bottomrule
 \end{tabular*}
 \end{table}
 \begin{figure}[H]\centering
@@ -342,7 +346,7 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \end{figure}
 
 \subsection{问题三：停车、接驳与人员协同配置}
-问题二的日级点预测留出集 sMAPE 为 64.30\%，对这一结论做如下解读：其一，sMAPE 以预测值与实际值之和的一半为分母，在低值日期上会被机械放大，而三区压力序列含有大量接近零的淡季日期，故该指标高估了旺季——即资源配置真正关心的时段——的相对误差；同期 MAE 与 RMSE 分别为 0.918 与 1.504，是更适合与序列自身量级对照的口径。其二，本文\textbf{不以点预测作为资源配置的唯一输入}：Q3 与 Q4 均在 $q_{10}/q_{50}/q_{90}$ 三档分位情景下分别求解，而这三档已经过分片区 split-conformal 校准，区间覆盖率为 0.899。
+问题二的日级点预测留出集 sMAPE 为 60.41\%，对这一结论做如下解读：其一，sMAPE 以预测值与实际值之和的一半为分母，在低值日期上会被机械放大，而三区压力序列含有大量接近零的淡季日期，故该指标高估了旺季——即资源配置真正关心的时段——的相对误差；同期 MAE 与 RMSE 分别为 0.860 与 1.454，是更适合与序列自身量级对照的口径。其二，本文\textbf{不以点预测作为资源配置的唯一输入}：Q3 与 Q4 均在 $q_{10}/q_{50}/q_{90}$ 三档分位情景下分别求解，而这三档已经过分片区 split-conformal 校准，区间覆盖率为 0.899。
 
 这一安排把预测误差转化为资源配置的\textbf{情景边界}，而非让单点误差直接传导为单一配置方案：保守档对应"少配但不浪费"，高压档对应"多配但可能冗余"，管理者据此选择风险偏好，而不必接受一个精度未知的点估计。下文的需求换算与优化在每一档情景上独立执行。
 
@@ -401,10 +405,10 @@ $\lambda$ 刻画管理者对服务缺口相对于资源投入的重视程度，�
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{风险惩罚系数 $\lambda$ 的权衡扫描（北戴河活动窗口）}\label{tab:q3lambda}
-\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lrrrr@{}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}ccccc@{}}\toprule
 $\lambda$ 取值 & 相对成本 & 体验损失 & 接驳车辆（最大） & 人员班次（最大）\\ \midrule
 0.25 / 0.50 / 0.75 & 0.000 & 2.200 & 0 & 0\\
-1.00 & 0.298 & 1.902 & 8 & 101\\
+1.00 & 0.289 & 1.911 & 6 & 101\\
 1.25 / 1.50 / 2.00 & 2.200 & 0.000 & 45 & 392\\ \bottomrule
 \end{tabular*}
 \end{table}
@@ -420,7 +424,7 @@ $\lambda\le0.75$ 时模型完全不投入资源，$\lambda\ge1.25$ 后最优解�
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{Q3 需求换算参数的三档取值}\label{tab:q3param}
-\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}p{3.6cm}ccc p{3.2cm}@{}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}>{\centering\arraybackslash}p{3.6cm}ccc>{\centering\arraybackslash}p{3.2cm}@{}}\toprule
 参数 & 保守 & 中位 & 高压 & 片区差异\\ \midrule
 私家车比例 $\alpha$ & 0.40--0.45 & 0.50--0.55 & 0.60--0.65 & 海港--阿那亚取下限\\
 平均同行人数 $o$（人/车） & 3.2 & 2.8 & 2.5 & 三区同值\\
@@ -444,7 +448,7 @@ $\lambda\le0.75$ 时模型完全不投入资源，$\lambda\ge1.25$ 后最优解�
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{Q3 容量与班距锚点的来源与使用边界}\label{tab:q3anchor}
-\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}p{2.9cm}p{2.3cm}p{2.0cm}p{4.2cm}@{}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}>{\centering\arraybackslash}p{2.9cm}>{\centering\arraybackslash}p{2.3cm}>{\centering\arraybackslash}p{2.0cm}>{\centering\arraybackslash}p{4.2cm}@{}}\toprule
 参数 & 取值 & 来源性质 & 使用边界\\ \midrule
 北戴河接驳班距 & 日间 15 min & 公开运营事实\cite{bdhbus} & 暑期专线服务水平基准，进入式(\ref{eq:shuttle})\\
 外部班距参照 & 30 min & 公开运营事实\cite{shgbus,shgtravel} & 山海关站--景区，范围不同，不覆盖古城核心；模型改取 20 min\\
@@ -466,18 +470,23 @@ $\lambda\le0.75$ 时模型完全不投入资源，$\lambda\ge1.25$ 后最优解�
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{Q3 关键资源需求情景}\label{tab:q3result}
-\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lrrrr@{}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}ccccc@{}}\toprule
 片区--情景 & 峰值泊位需求 & 接驳车辆 & 人员班次 & 停车外溢日数\\ \midrule
 北戴河--中位 & 9,389 & 34 & 291 & 0\\
 北戴河--高压 & 27,694 & 100 & 583 & 55\\
 海港--阿那亚--中位 & 3,898 & 10 & 125 & 229\\
 海港--阿那亚--高压 & 12,245 & 38 & 263 & 365\\
-山海关--中位 & 9,980 & 22 & 295 & 93\\
-山海关--高压 & 47,566 & 137 & 966 & 249\\ \bottomrule
+山海关--中位 & 9,950 & 22 & 294 & 57\\
+山海关--高压 & 64,069 & 184 & 1,300 & 62\\ \bottomrule
 \end{tabular*}
 \end{table}
 
-表\ref{tab:q3result}中的外溢应由外圈 P+R、预约、错峰或限流承接，而非通过新增停车供给解决。
+表\ref{tab:q3result}中的外溢应由外圈 P+R、预约、错峰或限流承接，而非通过新增停车供给解决。三类资源在片区与情景之间的差异见图\ref{fig:q3demand}：高压情景下山海关泊位需求激增至 6.4 万、北戴河达 2.8 万，均远超其常设容量，需外部承接；而接驳与人员需求随客流等比例放大，片区间相对稳定。
+
+\begin{figure}[H]\centering
+\includegraphics[width=.95\textwidth]{q3_resource_demand.png}
+\caption{三片区 Q3 关键资源需求：中位与高压情景对比}\label{fig:q3demand}
+\end{figure}
 
 将数值结果转为执行动作时，停车外溢日数大于零即触发外围 P+R、预约或分时入区；接驳约束紧张时优先增加备用车辆并缩短高峰班距；人员缺口则以中班增援覆盖入口、停车和驾驶三类岗位。该映射说明资源何时应被调用。
 
@@ -520,16 +529,21 @@ $G_d$ 量化不调整基线方案时扰动造成的服务缺口程度，$E_d^{\m
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{反事实场景的重优化结果（全年口径）}\label{tab:q4result}
-\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}lccccc@{}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}cccccc@{}}\toprule
 场景 & \shortstack{基线最大缺口\\指数 $G_d$} & \shortstack{重优化\\相对成本} & \shortstack{重优化体验\\损失 $E^{\mathrm{loss}}$} & \shortstack{接驳车辆\\（最大）} & \shortstack{人员班次\\（最大）}\\ \midrule
 活动冲击（北戴河 8/6--8/10） & 0.183 & 2.200 & 0.000 & 45 & 392\\
-连续降雨（山海关 7/15--7/19） & 0.259 & 2.200 & 0.099 & 22 & 295\\ \bottomrule
+连续降雨（山海关 7/15--7/19） & 0.259 & 2.200 & 0.098 & 22 & 294\\ \bottomrule
 \end{tabular*}
 \end{table}
 
 活动冲击下，基线方案的最大缺口指数为 0.183，重优化后加权体验损失降至 0，表明北戴河活动窗口内的缺口可完全由既有资源池的重新调度消除，无需新增设施：接驳车辆由基线的 34 辆增至 45 辆、人员由 291 增至 392 班次，增幅分别为 32.4\% 与 34.7\%，与 40\% 的活动强度大体相称。
 
-连续降雨一行需分开解读。表中 0.259 是山海关\textbf{全年}的基线最大缺口指数，其来源是该片区常设泊位 2,225 个远低于中位情景 9,980 个的峰值需求，属全年性的容量不足，\textbf{与降雨无关}。降雨窗口内的缺口反而随衰减加深而下降：$\rho=0.06$ 时窗口内最大缺口指数为 0.213，$\rho=0.18$ 时降至 0.139。这直接印证降雨情景的主要矛盾是运力冗余而非不足，调整方向应为收缩可变运力而非增补。重优化后残余的 0.099 体验损失同样全部来自停车——中位情景不开放临时泊位，停车缺口无法在现有容量内消除，只能由外围 P+R 与分时入城承接。
+连续降雨一行需分开解读。表中 0.259 是山海关\textbf{全年}的基线最大缺口指数，其来源是该片区常设泊位 2,225 个远低于中位情景 9,950 个的峰值需求，属全年性的容量不足，\textbf{与降雨无关}。降雨窗口内的缺口反而随衰减加深而下降：$\rho=0.06$ 时窗口内最大缺口指数为 0.212，$\rho=0.18$ 时降至 0.139。这直接印证降雨情景的主要矛盾是运力冗余而非不足，调整方向应为收缩可变运力而非增补。重优化后残余的 0.098 体验损失同样全部来自停车——中位情景不开放临时泊位，停车缺口无法在现有容量内消除，只能由外围 P+R 与分时入城承接。图\ref{fig:q4scenario}将两场景的基线缺口与重优化残余并置：活动冲击的缺口可被既有资源池完全消化（残余归零），而连续降雨的残余缺口全部来自停车容量，须由外部承接，二者调整方向相反。
+
+\begin{figure}[H]\centering
+\includegraphics[width=.82\textwidth]{q4_scenario_compare.png}
+\caption{Q4 两场景：基线方案在扰动下的不适配与重优化后的残余缺口}\label{fig:q4scenario}
+\end{figure}
 
 \subsubsection{参数扰动与稳定性}
 对五项情景参数各取低--高两个取值重新求解，以基线最大缺口指数的变化幅度排序，结果见表\ref{tab:q4sens}与图\ref{fig:q4sensitivity}。
@@ -537,13 +551,13 @@ $G_d$ 量化不调整基线方案时扰动造成的服务缺口程度，$E_d^{\m
 \begin{table}[H]\centering\small
 \renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \caption{情景参数的一次一变扰动排序}\label{tab:q4sens}
-\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}clccrrr@{}}\toprule
+\begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}ccccccc@{}}\toprule
 排序 & 参数 & 低值 & 高值 & 低值 $G$ & 高值 $G$ & 影响幅度\\ \midrule
 1 & 接驳分担率 $\gamma$ & 0.05 & 0.15 & 0.080 & 0.279 & 0.199\\
-2 & 活动强度 $\iota$ & 0.20 & 0.60 & 0.107 & 0.282 & 0.175\\
-3 & 私家车比例 $\alpha$ & 0.40 & 0.70 & 0.165 & 0.265 & 0.100\\
-4 & 平均停留时长 $h$ & 2.0 & 4.0 & 0.183 & 0.261 & 0.078\\
-5 & 降雨衰减系数 $\rho$ & 0.06 & 0.18 & 0.213 & 0.139 & 0.074\\ \bottomrule
+2 & 活动强度 $\iota$ & 0.20 & 0.60 & 0.106 & 0.280 & 0.175\\
+3 & 私家车比例 $\alpha$ & 0.40 & 0.70 & 0.164 & 0.265 & 0.100\\
+4 & 平均停留时长 $h$ & 2.0 & 4.0 & 0.183 & 0.260 & 0.077\\
+5 & 降雨衰减系数 $\rho$ & 0.06 & 0.18 & 0.212 & 0.139 & 0.073\\ \bottomrule
 \end{tabular*}
 \end{table}
 
@@ -556,29 +570,29 @@ $G_d$ 量化不调整基线方案时扰动造成的服务缺口程度，$E_d^{\m
 \end{figure}
 
 \section{模型分析与检验}
-年度预测以留出法比较三种基准，近期中位增长法的年度 sMAPE 为 24.67\%；日级部分以 149 条去重片区--日期观测为留出集，动态 Ridge 的 MAE、RMSE 和 sMAPE 分别为 0.918、1.504 和 64.30\%，并以分片区 split-conformal 校准得到 0.899 的区间覆盖率。问题三对全部资源结果保留量纲和情景参数，并对目标函数中唯一无实测依据的风险惩罚系数作扫描检验：$\lambda\ge1.25$ 后最优解恒定，本文取值 $\lambda=4.0$ 位于该平台区内。问题四以反事实基线比较等权服务缺口指数，并通过五项参数扰动给出敏感性排序。四项检验分别对应预测误差、区间覆盖、目标函数参数稳健性与情景稳健性；范围不一致的外部报道不计入误差计算。
+年度预测以留出法比较三种基准，近期中位增长法的年度 sMAPE 为 24.67\%；日级部分以 149 条去重片区--日期观测为留出集，动态 Ridge 的 MAE、RMSE 和 sMAPE 分别为 0.860、1.454 和 60.41\%，并以分片区 split-conformal 校准得到 0.899 的区间覆盖率。问题三对全部资源结果保留量纲和情景参数，并对目标函数中唯一无实测依据的风险惩罚系数作扫描检验：$\lambda\ge1.25$ 后最优解恒定，本文取值 $\lambda=4.0$ 位于该平台区内。问题四以反事实基线比较等权服务缺口指数，并通过五项参数扰动给出敏感性排序。四项检验分别对应预测误差、区间覆盖、目标函数参数稳健性与情景稳健性；范围不一致的外部报道不计入误差计算。
 
 \section{模型评价、改进与推广}
 \subsection{模型优点}
 \begin{enumerate}[label=\textbf{（\arabic*）},leftmargin=2.6em,itemsep=3pt]
 \item\textbf{缺失机制被正确识别并转化为信息。} 景区榜单的缺失为非随机缺失，本文以左删失似然处理，使原本被丢弃的 95.6\% 的 (景区$\times$日) 组合转为有效的负向信息。若按随机缺失处理，淡季因缺少低值观测将被系统性高估、季节振幅被压缩——这会直接削弱本文关于片区峰谷比差异的核心发现。
-\item\textbf{不确定性按片区分别校准。} 三区的 split-conformal 相对半径分别为 0.592、0.670 与 1.572，差异达 2.7 倍。若沿用全局单一半径，波动性最低与最高的片区将被赋予相同的相对不确定性，从而抹平片区异质性这一关键结论。校准后区间覆盖率为 0.899，接近并略高于名义水平。
+\item\textbf{不确定性按片区分别校准。} 三区的 split-conformal 相对半径分别为 0.591、0.670 与 2.475，差异达 4.2 倍。若沿用全局单一半径，波动性最低与最高的片区将被赋予相同的相对不确定性，从而抹平片区异质性这一关键结论。校准后区间覆盖率为 0.899，略高于名义水平 0.80。
 \item\textbf{设置朴素基准与消融实验双重对照。} 年度尺度上朴素的近期中位增长法（sMAPE 24.67\%）优于参数化对数趋势，本文据此采用朴素法；日级尺度上动态 Ridge 相对历史星期中位数确有改善，且通过消融实验分离出日历因素与动态协变量的各自贡献，避免将季节性效应归因于天气与热度变量的作用。
 \item\textbf{各类资源保持独立量纲，不做跨量纲加总。} 停车以泊位计、接驳以车辆计、人员以班次计，分别在各自容量约束下求解；进入目标函数前各项先对其满覆盖需求标准化，故加权求和的是无量纲比率而非原始数量。游客体验损耗则以时间价值单独货币化为“元”，完全独立于优化目标之外，避免了“准确率加金额加比率”式的量纲灾难。
 \item\textbf{全部无法证实的运营参数被显式保留为情景变量。} 私家车比例、同行人数、单车运力、满载率等均标注取值依据与适用边界，并在保守--中位--高压三档下给出结果。
-\item\textbf{结果可完整复现且经回归检验。} 主线脚本一次运行即可重建四问全部产物，配套 107 项回归测试覆盖删失似然、预测校准、资源换算与情景重优化四个环节；正文各表数值均可由对应产出表逐项核对，式(\ref{eq:parking})与式(\ref{eq:shuttle})的输入参数已全部在表\ref{tab:q3param}中列明，可独立复算。
+\item\textbf{结果可完整复现且经回归检验。} 主线脚本一次运行即可重建四问全部产物，全部回归测试通过，覆盖左删失 MAP 估计、预测校准、资源换算与情景重优化四个环节；正文各表数值均可由对应产出表逐项核对，式(\ref{eq:parking})与式(\ref{eq:shuttle})的输入参数已全部在表\ref{tab:q3param}中列明，可独立复算。
 \end{enumerate}
 
 \subsection{模型缺点}
 \begin{enumerate}[label=\textbf{（\arabic*）},leftmargin=2.6em,itemsep=3pt]
-\item\textbf{山海关的区间校准样本不足。} 该片区可用校准样本仅 27 条，导致相对半径达 1.572，$q_{10}$ 在非负截断后取零。该零值由区间宽度与非负截断导致，不表示零需求，但确实削弱了下界的决策价值。
+\item\textbf{山海关的区间校准样本不足。} 该片区可用校准样本仅 26 条，导致相对半径达 2.475，$q_{10}$ 在非负截断后取零。该零值由区间宽度与非负截断导致，不表示零需求，但确实削弱了下界的决策价值。
 \item\textbf{时序分解中季节项被趋势项吸收。} 31 日中心移动平均的窗口短于年周期，年内循环并入趋势项，故“季节项”仅反映月内日历效应，其 0.6\% 的方差占比不能解读为季节性弱。
 \item\textbf{资源投入成本为相对量。} 本地缺少人力单价、车辆运营与场站运维台账，故除游客时间损失外，资源侧成本只能以相对强度呈现，无法给出真实预算数额。
 \item\textbf{缺少连续的运营实测基础。} 无逐时入园计数、逐时停车占用率与车辆调度台账，因而日级游客规模与资源配置均为锚点约束估计或情景规划值，其绝对水平的验证依赖于后续实地数据。
 \end{enumerate}
 
 \subsection{结论适用边界}
-为避免结果被超范围引用，明确以下五条边界：
+为避免结果被超范围引用，明确以下四条边界：
 
 \begin{enumerate}[label=\textbf{B\arabic*.},leftmargin=3.0em,itemsep=2pt]
 \item 日级客流、资源规模与成本均为锚点约束估计或情景规划量；
@@ -593,7 +607,7 @@ $G_d$ 量化不调整基线方案时扰动造成的服务缺口程度，$E_d^{\m
 综上，秦皇岛旅游管理应以暑期预配置、节假日动态调度和突发事件预案为主线。北戴河需优先保证旅游专线班距；海港--阿那亚需加强预约、停车和住宿的统一日台账；山海关应把古城节点饱和转化为外圈换乘和分时入城策略。
 
 
-\begin{thebibliography}{9}
+\begin{thebibliography}{5}
 \bibitem{qhdstat} 秦皇岛市统计局. 《秦皇岛市国民经济和社会发展统计公报》[EB/OL]. 项目原始数据登记表所列 2002--2024 年官方年度游客量来源.
 \bibitem{bdhbus} 人民网河北频道. 北戴河开通旅游公交专线 2 路[EB/OL]. \url{https://he.people.com.cn/n2/2024/0705/c192235-40902683.html}.
 \bibitem{shgbus} 北京日报客户端. 山海关暑期交通服务指南[EB/OL]. \url{https://peking.bjd.com.cn/content/s6a48eceee4b0e45f3fd412a0.html}.
@@ -602,10 +616,12 @@ $G_d$ 量化不调整基线方案时扰动造成的服务缺口程度，$E_d^{\m
 \end{thebibliography}
 
 \clearpage
+\section*{AI工具使用声明}
+本参赛队在竞赛过程中使用了AI工具，主要用于建模思路审查、公开资料检索辅助、数据整理、语言润色及LaTeX排版调试。所有涉及原始数据、模型参数、程序运行结果及论文结论的内容均由本组成员进行人工核验与确认，详细使用情况见支撑材料《AI工具使用详情.pdf》。
+
 \begin{appendices}
 \input{appendix_support_manifest.tex}
 \input{appendix_source_listings.tex}
 \end{appendices}
 
 \end{document}
-

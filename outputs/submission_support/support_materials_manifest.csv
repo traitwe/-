@@ -12,6 +12,8 @@ outputs/figures/q1_city_annual_trend.png,result_artifact,115375
 outputs/figures/q1_regional_peak_pressure_2025.png,result_artifact,377509
 outputs/figures/q2_city_monthly_forecast.png,result_artifact,52206
 outputs/figures/q2_summer_regional_daily_forecast.png,result_artifact,148462
+outputs/figures/q3_resource_demand.png,result_artifact,75350
+outputs/figures/q4_scenario_compare.png,result_artifact,63301
 outputs/figures/q4_sensitivity_ranking.png,result_artifact,46914
 outputs/submission/Q1_daily_visitor_estimates.csv,result_artifact,811205
 outputs/submission/Q1_validation_summary.csv,result_artifact,7488
@@ -22,8 +24,12 @@ outputs/submission/Q3_seasonal_recommendations.csv,result_artifact,164832
 outputs/submission/Q3_sensitivity_summary.csv,result_artifact,3074
 outputs/submission/Q4_robustness_summary.csv,result_artifact,2360
 outputs/submission/Q4_scenario_reoptimization.csv,result_artifact,234473
-final_programs/common_runtime.py,source_code,3740
-final_programs/question1_model.py,source_code,59075
-final_programs/question2_model.py,source_code,59585
-final_programs/question3_model.py,source_code,29029
-final_programs/question4_model.py,source_code,15773
+final_programs/appendix_core/question1_core.py,source_code,8266
+final_programs/appendix_core/question2_core.py,source_code,4711
+final_programs/appendix_core/question3_core.py,source_code,2837
+final_programs/appendix_core/question4_core.py,source_code,6094
+final_programs/common_runtime.py,source_code,3690
+final_programs/question1_model.py,source_code,58067
+final_programs/question2_model.py,source_code,58647
+final_programs/question3_model.py,source_code,28476
+final_programs/question4_model.py,source_code,15568

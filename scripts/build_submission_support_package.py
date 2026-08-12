@@ -22,12 +22,18 @@ MAINLINE_SOURCE_FILES = (
     "final_programs/question4_model.py",
 )
 
+APPENDIX_SOURCE_FILES = tuple(
+    f"final_programs/appendix_core/question{question}_core.py" for question in range(1, 5)
+)
+
 # 仅打包和列出当前论文正文实际引用的图件；示例图和空目录标记不属于交付物。
 PAPER_FIGURE_FILES = (
     "q1_city_annual_trend.png",
     "q1_regional_peak_pressure_2025.png",
     "q2_city_monthly_forecast.png",
     "q2_summer_regional_daily_forecast.png",
+    "q3_resource_demand.png",
+    "q4_scenario_compare.png",
     "q4_sensitivity_ranking.png",
 )
 
@@ -86,7 +92,7 @@ def _relative_paths(root: Path, directory: str, category: str) -> list[dict[str,
 def _mainline_source_rows(root: Path) -> list[dict[str, object]]:
     """Return only the explicitly audited source closure for paper reproduction."""
     rows: list[dict[str, object]] = []
-    for relative in MAINLINE_SOURCE_FILES:
+    for relative in (*MAINLINE_SOURCE_FILES, *APPENDIX_SOURCE_FILES):
         path = root / relative
         if not path.is_file():
             raise FileNotFoundError(f"mainline source file is missing: {path}")
@@ -175,7 +181,7 @@ def write_appendix_fragments(manifest: pd.DataFrame, paper_directory: Path) -> t
         if files:
             manifest_lines.append(rf"\textbf{{{label}}}\\[-0.45em]")
             if category == "source_code":
-                for path in MAINLINE_SOURCE_FILES:
+                for path in (*MAINLINE_SOURCE_FILES, *APPENDIX_SOURCE_FILES):
                     if path in files:
                         manifest_lines.append(rf"\texttt{{{_tex_path(Path(path).name)}}}\\[-0.45em]")
             else:

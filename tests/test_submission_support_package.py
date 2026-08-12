@@ -19,7 +19,8 @@ def test_support_manifest_contains_complete_reproducibility_materials():
     assert manifest.loc[manifest["relative_path"].str.endswith(".py"), "category"].eq("source_code").all()
     assert not any(path.startswith("scripts/") or path.startswith("src/") for path in paths)
     source_paths = manifest.loc[manifest["category"].eq("source_code"), "relative_path"]
-    assert len(source_paths) == 5
+    assert len(source_paths) == 9
+    assert all(f"final_programs/appendix_core/question{i}_core.py" in set(source_paths) for i in range(1, 5))
     assert "scipy>=1.13,<2.0" in (root / "requirements.txt").read_text(encoding="utf-8")
 
 
@@ -67,3 +68,13 @@ def test_appendix_lists_all_audited_model_files_but_shows_only_four_core_models(
     assert "build_q1_paper_figures.py" not in source_content
     assert "build_search_theme_features.py" not in source_content
     assert "question1_model.py" not in source_content
+
+
+def test_support_manifest_contains_every_paper_figure_and_appendix_source():
+    root = Path(__file__).resolve().parents[1]
+    paths = set(build_support_manifest(root)["relative_path"])
+
+    assert "outputs/figures/q3_resource_demand.png" in paths
+    assert "outputs/figures/q4_scenario_compare.png" in paths
+    for question in range(1, 5):
+        assert f"final_programs/appendix_core/question{question}_core.py" in paths
