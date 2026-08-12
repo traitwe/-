@@ -293,11 +293,14 @@ w_t=\frac{\sum_r\exp(z_{r,t})}{\sum_{\tau\in y}\sum_r\exp(z_{r,\tau})},\qquad \w
 \caption{预测模型验证结果}\label{tab:q2valid}
 \begin{tabular*}{\paperTableWidth}{@{\extracolsep{\fill}}cccc@{}}\toprule
 模型 & MAE & RMSE & sMAPE(\%)\\ \midrule
+年度：加权对数趋势 & 14,840,644 & 21,844,236 & 29.26\\
+年度：上一年朴素法 & 12,584,493 & 20,861,906 & 29.28\\
 年度：近期中位增长 & 11,331,292 & 24,008,187 & 24.67\\
 日级：季节--日历 Ridge & 0.897 & 1.548 & 63.65\\
 日级：动态 Ridge & 0.860 & 1.454 & 60.41\\
 日级：历史星期中位数 & 1.160 & 2.047 & 65.90\\ \bottomrule
 \end{tabular*}
+\par\vspace{2pt}\footnotesize 注：年度行的 MAE、RMSE 单位为人次；日级行的 MAE、RMSE 单位为锚点约束压力指数，二者仅在各自尺度内比较。
 \end{table}
 
 近期中位增长法给出 2026 年全市点预测 9,971.43 万人次。动态 Ridge 的误差最低，作为日级基准；其区间覆盖率为 0.899。图\ref{fig:q2monthly}给出 2026 年全市月度预测走势，呈现明显的暑期单峰结构。
