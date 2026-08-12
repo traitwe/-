@@ -1,0 +1,17 @@
+﻿source_table,scenario,max_baseline_gap,mean_reoptimized_cost,mean_reoptimized_loss,max_reoptimized_shuttles,max_reoptimized_staff,parameter,low_value,high_value,low_max_service_gap,high_max_service_gap,sensitivity_effect,ranking,window_start,window_end,days,max_baseline_shuttles,max_baseline_staff,max_reoptimized_temporary_spaces,mean_reoptimized_relative_cost,mean_reoptimized_experience_loss,risk_penalty,mean_relative_cost,mean_experience_loss,max_temporary_spaces,max_shuttle_vehicles,max_staff_shifts
+q4_baseline_reoptimization_summary_2026.csv,event,0.1832766439909297,2.2,0.0,45.0,392.0,,,,,,,,,,,,,,,,,,,,,
+q4_baseline_reoptimization_summary_2026.csv,rain,0.2587939698492462,2.2,0.0984940299236726,22.0,294.0,,,,,,,,,,,,,,,,,,,,,
+q4_robustness_sensitivity_ranking.csv,,,,,,,transfer_share,0.05,0.15,0.0801801801801801,0.2791991495393338,0.1990189693591535,1.0,,,,,,,,,,,,,,
+q4_robustness_sensitivity_ranking.csv,,,,,,,event_intensity,0.2,0.6,0.1058455433455433,0.2804304953267957,0.1745849519812524,2.0,,,,,,,,,,,,,,
+q4_robustness_sensitivity_ranking.csv,,,,,,,car_share,0.4,0.7,0.1641873278236914,0.2646185792566297,0.1004312514329382,3.0,,,,,,,,,,,,,,
+q4_robustness_sensitivity_ranking.csv,,,,,,,dwell_hours,2.0,4.0,0.1832766439909297,0.2603665066050073,0.0770898626140776,4.0,,,,,,,,,,,,,,
+q4_robustness_sensitivity_ranking.csv,,,,,,,rain_daily_attenuation,0.06,0.18,0.2121855602744201,0.138721245517362,0.0734643147570581,5.0,,,,,,,,,,,,,,
+q4_scenario_window_adjustment_summary.csv,beidaihe_event_window,0.1832766439909297,,,45.0,392.0,,,,,,,,2026-08-06,2026-08-10,5.0,33.0,282.0,0.0,2.2,0.0,,,,,,
+q4_scenario_window_adjustment_summary.csv,shanhaiguan_rain_window,0.156282326728734,,,9.0,124.0,,,,,,,,2026-07-15,2026-07-19,5.0,18.0,243.0,0.0,2.2,0.3506111311628602,,,,,,
+q4_lambda_tradeoff_2026.csv,,,,,,,,,,,,,,,,,,,,,,0.25,0.0,2.2,0.0,0.0,0.0
+q4_lambda_tradeoff_2026.csv,,,,,,,,,,,,,,,,,,,,,,0.5,0.0,2.2,0.0,0.0,0.0
+q4_lambda_tradeoff_2026.csv,,,,,,,,,,,,,,,,,,,,,,0.75,0.0,2.2,0.0,0.0,0.0
+q4_lambda_tradeoff_2026.csv,,,,,,,,,,,,,,,,,,,,,,1.0,0.2888209356937631,1.9111790643062367,0.0,6.0,101.0
+q4_lambda_tradeoff_2026.csv,,,,,,,,,,,,,,,,,,,,,,1.25,2.2,0.0,0.0,45.0,392.0
+q4_lambda_tradeoff_2026.csv,,,,,,,,,,,,,,,,,,,,,,1.5,2.2,0.0,0.0,45.0,392.0
+q4_lambda_tradeoff_2026.csv,,,,,,,,,,,,,,,,,,,,,,2.0,2.2,0.0,0.0,45.0,392.0

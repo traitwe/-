@@ -1,0 +1,16 @@
+﻿parameter_group,parameter,estimate_standardized
+covariate,intercept,0.3332666772600505
+covariate,is_holiday,0.09478061594979846
+covariate,is_weekend,0.09293275623266534
+covariate,temperature,0.02463214711542188
+covariate,precipitation,-0.04444056461566634
+covariate,search_attraction_lag1,0.01232580167071585
+covariate,search_coastal_lag1,-0.04061916180761503
+covariate,search_destination_lag1,0.24481749823770665
+region_effect,BDH,0.0
+region_effect,HGA,0.6955864988376568
+region_effect,SHG,-0.21572175247950554
+dispersion,BDH,0.38871975324190805
+dispersion,HGA,0.09649411767282694
+dispersion,SHG,0.22844729700024655
+dynamic,rho_adjacent_sample,0.5233799981910334

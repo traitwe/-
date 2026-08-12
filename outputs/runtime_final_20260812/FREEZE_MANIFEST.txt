@@ -1,0 +1,1 @@
+﻿Frozen at 2026-08-12 Asia/Shanghai. Source pipeline must not be rerun for paper-number updates. Paper P0/P1 values are copied only from this snapshot.

@@ -1,0 +1,13 @@
+{
+  "groups": 1484,
+  "valid_likelihood_groups": 510,
+  "no_density_observation_groups": 968,
+  "no_positive_density_index_groups": 6,
+  "small_observed_sample_groups": 414,
+  "censor_rate_summary": {
+    "min": 0.0,
+    "median": 1.0,
+    "max": 1.0
+  },
+  "note": "Diagnostics apply only to actual ranking sample dates; left-censored rows are not imputed visitor values."
+}

@@ -1,0 +1,16 @@
+{
+  "rows": 3288,
+  "direct_anchor_fits": 8,
+  "primary_scale_anchor_fits": 6,
+  "diagnostic_only_anchor_fits": 2,
+  "calibration_regions": [
+    "BDH",
+    "HGA",
+    "SHG"
+  ],
+  "carry_forward_rows": 1096,
+  "max_abs_primary_anchor_relative_fit_error": 7.771561172376096e-16,
+  "max_abs_diagnostic_anchor_relative_fit_error": 0.9524103410132094,
+  "estimate_label": "anchor_constrained_estimate",
+  "note": "Scenario estimates use annual anchors when available; conflicting short-period anchors are diagnostics, not fitting targets."
+}
